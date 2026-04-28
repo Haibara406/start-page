@@ -1165,21 +1165,21 @@
                 return;
             }
             elements.backgroundTyper.textContent = word.slice(0, index);
-            await sleep(72);
+            await sleep(150);
         }
-        await sleep(980);
+        await sleep(1500);
         for (let index = word.length - 1; index >= 0; index -= 1) {
             if (token !== typewriterAbort || document.hidden) {
                 if (token === typewriterAbort) typewriterActive = false;
                 return;
             }
             elements.backgroundTyper.textContent = word.slice(0, index);
-            await sleep(48);
+            await sleep(115);
         }
         elements.backgroundTyper.classList.remove("is-visible");
         typewriterActive = false;
         if (token !== typewriterAbort || document.hidden) return;
-        typewriterTimer = window.setTimeout(runTypewriterCycle, 1800 + Math.random() * 2200);
+        typewriterTimer = window.setTimeout(runTypewriterCycle, 2600 + Math.random() * 2800);
     }
 
     function sleep(duration) {
