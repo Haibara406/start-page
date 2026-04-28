@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+            name="description"
+            content="NaviR is a minimalist personal navigation tool that helps you efficiently manage bookmarks and quickly access your favorite websites."
+        />
+        <title>NaviR - Minimalist Bookmark Navigator</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="./assets/css/main.css" />
+    </head>
+    <body>
+        <div class="page-shell">
+            <div class="background-layer">
+                <div class="background-grid" aria-hidden="true"></div>
+                <div class="background-effect" aria-hidden="true">
+                    <span class="fx fx-a"></span>
+                    <span class="fx fx-b"></span>
+                    <span class="fx fx-c"></span>
+                </div>
+            </div>
+
+            <header class="top-bar">
+                <div class="brand-block" aria-label="NaviR">
+                    <strong class="brand-name">NAVIR</strong>
+                    <div class="brand-tagline">
+                        <span class="brand-tag brand-tag-solid">SEARCH</span>
+                        <span class="brand-tag brand-tag-dot">■</span>
+                        <span class="brand-tag">DISCOVER</span>
+                    </div>
+                </div>
+
+                <div class="top-actions">
+                    <button
+                        id="settings-button"
+                        class="icon-button"
+                        type="button"
+                        aria-label="Open settings"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                                d="M10.4 2.5h3.2l.55 2.28a7.92 7.92 0 0 1 1.72.72l1.98-1.25 2.26 2.26-1.25 1.98c.3.55.54 1.13.72 1.72l2.28.55v3.2l-2.28.55a7.92 7.92 0 0 1-.72 1.72l1.25 1.98-2.26 2.26-1.98-1.25a7.92 7.92 0 0 1-1.72.72l-.55 2.28h-3.2l-.55-2.28a7.92 7.92 0 0 1-1.72-.72l-1.98 1.25-2.26-2.26 1.25-1.98a7.92 7.92 0 0 1-.72-1.72L2.5 13.6v-3.2l2.28-.55c.18-.6.42-1.17.72-1.72L4.25 6.15l2.26-2.26 1.98 1.25c.55-.3 1.13-.54 1.72-.72l.19-.92.36-1.36Z"
+                            />
+                            <circle cx="12" cy="12" r="3.1" />
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <main class="hero-layout">
+                <section class="clock-block" aria-live="polite">
+                    <span class="clock-label">LOCAL TIME</span>
+                    <div class="clock-value">
+                        <span id="clock-hours">00</span>
+                        <span class="clock-separator">:</span>
+                        <span id="clock-minutes">00</span>
+                        <span id="clock-period" class="clock-period"></span>
+                    </div>
+                </section>
+
+                <section class="search-section" aria-label="Search">
+                    <div class="search-shell">
+                        <div class="search-edge search-edge-left" aria-hidden="true">
+                            (
+                        </div>
+
+                        <div class="search-panel">
+                            <div class="engine-picker">
+                                <button
+                                    id="engine-trigger"
+                                    class="engine-trigger"
+                                    type="button"
+                                    aria-haspopup="menu"
+                                    aria-expanded="false"
+                                >
+                                    <span
+                                        id="engine-badge"
+                                        class="engine-badge"
+                                    ></span>
+                                    <span
+                                        id="engine-label"
+                                        class="engine-label"
+                                    ></span>
+                                    <svg
+                                        class="engine-chevron"
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                    >
+                                        <path d="m6 9 6 6 6-6" />
+                                    </svg>
+                                </button>
+                                <div
+                                    id="engine-menu"
+                                    class="engine-menu"
+                                    role="menu"
+                                    hidden
+                                ></div>
+                            </div>
+
+                            <label class="search-input-wrap" for="search-input">
+                                <input
+                                    id="search-input"
+                                    type="text"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                    placeholder="TYPE YOUR QUERY"
+                                />
+                            </label>
+
+                            <button
+                                id="search-submit"
+                                class="search-submit"
+                                type="button"
+                                aria-label="Search"
+                            >
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="7"></circle>
+                                    <path d="m20 20-3.8-3.8"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="search-edge search-edge-right" aria-hidden="true">
+                            )
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <div
+            id="settings-modal"
+            class="modal-layer"
+            aria-hidden="true"
+            data-modal="settings"
+        >
+            <div class="modal-panel settings-modal" role="dialog" aria-modal="true">
+                <aside id="settings-nav" class="settings-nav"></aside>
+                <section class="settings-body">
+                    <button
+                        class="modal-close"
+                        type="button"
+                        data-close-modal="settings"
+                        aria-label="Close settings"
+                    >
+                        <span aria-hidden="true">×</span>
+                    </button>
+                    <div id="settings-content" class="settings-content"></div>
+                </section>
+            </div>
+        </div>
+
+        <div
+            id="bookmarks-modal"
+            class="modal-layer"
+            aria-hidden="true"
+            data-modal="bookmarks"
+        >
+            <div class="modal-panel bookmarks-modal" role="dialog" aria-modal="true">
+                <div id="bookmarks-grid" class="bookmarks-grid"></div>
+            </div>
+        </div>
+
+        <div
+            id="bookmark-form-modal"
+            class="modal-layer"
+            aria-hidden="true"
+            data-modal="bookmark-form"
+        >
+            <div class="modal-panel form-modal" role="dialog" aria-modal="true">
+                <div class="form-header">
+                    <div>
+                        <span class="modal-kicker">BOOKMARK</span>
+                        <h2 id="bookmark-form-title">Add Bookmark</h2>
+                    </div>
+                    <button
+                        class="modal-close"
+                        type="button"
+                        data-close-modal="bookmark-form"
+                        aria-label="Close bookmark form"
+                    >
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <form id="bookmark-form" class="bookmark-form">
+                    <input id="bookmark-id" type="hidden" />
+                    <label class="field">
+                        <span>Title</span>
+                        <input
+                            id="bookmark-title"
+                            type="text"
+                            placeholder="My Website"
+                            required
+                        />
+                    </label>
+                    <label class="field">
+                        <span>URL</span>
+                        <input
+                            id="bookmark-url"
+                            type="url"
+                            placeholder="https://example.com"
+                            required
+                        />
+                    </label>
+                    <div class="form-actions">
+                        <button class="primary-button" type="submit">
+                            Save
+                        </button>
+                        <button
+                            class="secondary-button"
+                            type="button"
+                            data-close-modal="bookmark-form"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <input
+            id="import-file-input"
+            type="file"
+            accept=".json,.html,.htm"
+            hidden
+        />
+
+        <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+
+        <script src="./assets/js/config.js" defer></script>
+        <script src="./assets/js/storage.js" defer></script>
+        <script src="./assets/js/app.js" defer></script>
+    </body>
+</html>
