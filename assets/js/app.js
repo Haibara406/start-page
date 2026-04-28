@@ -34,6 +34,7 @@
         renderEngine();
         renderSettingsNav();
         renderSettingsContent();
+        renderBookmarkPattern();
         renderBookmarks();
         tickClock();
         clockTimer = window.setInterval(tickClock, 1000);
@@ -56,6 +57,7 @@
         elements.bookmarkFormModal = document.getElementById("bookmark-form-modal");
         elements.settingsNav = document.getElementById("settings-nav");
         elements.settingsContent = document.getElementById("settings-content");
+        elements.bookmarkPattern = document.getElementById("bookmark-pattern");
         elements.bookmarksGrid = document.getElementById("bookmarks-grid");
         elements.bookmarkForm = document.getElementById("bookmark-form");
         elements.bookmarkFormTitle = document.getElementById("bookmark-form-title");
@@ -116,6 +118,7 @@
         elements.bookmarksGrid.addEventListener("dragend", handleBookmarkDragEnd);
 
         elements.importFileInput.addEventListener("change", handleImportFileChange);
+        window.addEventListener("resize", debounce(renderBookmarkPattern, 120));
 
         window.addEventListener("storage", (event) => {
             if (event.key === window.StartPageConfig.storageKeys.settings) {
@@ -443,6 +446,29 @@
         `;
     }
 
+    function renderBookmarkPattern() {
+        if (!elements.bookmarkPattern) {
+            return;
+        }
+        const symbols = ["/", "\\", "|", "-", "_", "+", "=", "*", "#", ".", "~", "^", "<", ">"];
+        const host = elements.bookmarksModal.querySelector(".bookmarks-modal");
+        const width = host?.clientWidth || window.innerWidth;
+        const height = host?.clientHeight || window.innerHeight;
+        const rows = Math.max(12, Math.ceil(height / 42));
+        const cols = Math.max(28, Math.ceil(width / 16));
+
+        const markup = Array.from({ length: rows }, (_, rowIndex) => {
+            const text = Array.from(
+                { length: cols },
+                () => symbols[Math.floor(Math.random() * symbols.length)],
+            ).join(" ");
+            const duration = 15 + (rowIndex % 5) * 3;
+            return `<div class="pattern-line" style="--pattern-duration:${duration}s">${escapeHtml(text)}</div>`;
+        }).join("");
+
+        elements.bookmarkPattern.innerHTML = `<div class="pattern-stage">${markup}</div>`;
+    }
+
     function renderBookmarks() {
         const items = state.bookmarks;
         const sorted = [...items].sort((left, right) => left.position - right.position);
@@ -584,6 +610,7 @@
         getModalElement(name).classList.add("is-open");
         getModalElement(name).setAttribute("aria-hidden", "false");
         if (name === "bookmarks") {
+            renderBookmarkPattern();
             renderBookmarks();
         }
         if (name === "settings") {
@@ -1149,6 +1176,14 @@
 
     function createId() {
         return `bm_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;
+    }
+
+    function debounce(fn, delay) {
+        let timerId = null;
+        return (...args) => {
+            window.clearTimeout(timerId);
+            timerId = window.setTimeout(() => fn(...args), delay);
+        };
     }
 
     function downloadBlob(blob, fileName) {

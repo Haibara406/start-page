@@ -69,13 +69,19 @@
         { id: "orange", label: "Warm Orange", value: "#ff6b35" },
         { id: "blue", label: "Ocean Blue", value: "#1778f2" },
         { id: "green", label: "Forest Green", value: "#20a464" },
+        { id: "purple", label: "Grape Purple", value: "#a855f7" },
+        { id: "pink", label: "Rose Pink", value: "#ec4899" },
         { id: "red", label: "Cherry Red", value: "#d63f3f" },
+        { id: "cyan", label: "Turquoise", value: "#06b6d4" },
+        { id: "yellow", label: "Sunflower", value: "#eab308" },
+        { id: "indigo", label: "Midnight Indigo", value: "#6366f1" },
         { id: "teal", label: "Mint Teal", value: "#0f9b9b" },
-        { id: "amber", label: "Golden Amber", value: "#d18f00" },
+        { id: "amber", label: "Golden Amber", value: "#f59e0b" },
+        { id: "slate", label: "Cool Slate", value: "#64748b" },
     ];
 
     const backgroundOptions = [
-        { id: "blob", label: "Blob" },
+        { id: "blob", label: "Blob Animation" },
         { id: "wave", label: "Wave" },
         { id: "matrix", label: "Matrix" },
         { id: "none", label: "None" },

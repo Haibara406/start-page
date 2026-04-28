@@ -5,9 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta
             name="description"
-            content="NaviR is a minimalist personal navigation tool that helps you efficiently manage bookmarks and quickly access your favorite websites."
+            content="Haibara is a minimalist personal navigation tool that helps you efficiently manage bookmarks and quickly access your favorite websites."
         />
-        <title>NaviR - Minimalist Bookmark Navigator</title>
+        <title>Haibara - Minimalist Bookmark Navigator</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
@@ -21,15 +21,30 @@
             <div class="background-layer">
                 <div class="background-grid" aria-hidden="true"></div>
                 <div class="background-effect" aria-hidden="true">
-                    <span class="fx fx-a"></span>
-                    <span class="fx fx-b"></span>
-                    <span class="fx fx-c"></span>
+                    <svg class="blob-scene" viewBox="0 0 1440 1024" preserveAspectRatio="none">
+                        <path
+                            class="blob-shape blob-soft-right"
+                            d="M881 0C861 103 857 203 903 286c56 101 171 145 307 167 77 12 156 18 230 43V0H881Z"
+                        ></path>
+                        <path
+                            class="blob-shape blob-strong-right"
+                            d="M1200 0c38 50 44 110 52 157 10 61 49 104 188 112v-269h-240Z"
+                        ></path>
+                        <path
+                            class="blob-shape blob-soft-left"
+                            d="M0 255c46 69 91 141 166 188 76 48 178 47 244 42 67-5 99 11 123 77 30 82 58 186 135 243 81 60 198 82 200 219H0V255Z"
+                        ></path>
+                        <path
+                            class="blob-shape blob-strong-left"
+                            d="M0 669c45 61 72 134 121 170 51 37 132 40 192 85 58 44 96 121 92 100H0V669Z"
+                        ></path>
+                    </svg>
                 </div>
             </div>
 
             <header class="top-bar">
-                <div class="brand-block" aria-label="NaviR">
-                    <strong class="brand-name">NAVIR</strong>
+                <div class="brand-block" aria-label="Haibara">
+                    <strong class="brand-name">HAIBARA</strong>
                     <div class="brand-tagline">
                         <span class="brand-tag brand-tag-solid">SEARCH</span>
                         <span class="brand-tag brand-tag-dot">■</span>
@@ -55,83 +70,85 @@
             </header>
 
             <main class="hero-layout">
-                <section class="clock-block" aria-live="polite">
-                    <span class="clock-label">LOCAL TIME</span>
-                    <div class="clock-value">
-                        <span id="clock-hours">00</span>
-                        <span class="clock-separator">:</span>
-                        <span id="clock-minutes">00</span>
-                        <span id="clock-period" class="clock-period"></span>
-                    </div>
-                </section>
-
-                <section class="search-section" aria-label="Search">
-                    <div class="search-shell">
-                        <div class="search-edge search-edge-left" aria-hidden="true">
-                            (
+                <div class="center-stage">
+                    <section class="clock-block" aria-live="polite">
+                        <span class="clock-label">LOCAL TIME</span>
+                        <div class="clock-value">
+                            <span id="clock-hours">00</span>
+                            <span class="clock-separator">:</span>
+                            <span id="clock-minutes">00</span>
+                            <span id="clock-period" class="clock-period"></span>
                         </div>
+                    </section>
 
-                        <div class="search-panel">
-                            <div class="engine-picker">
-                                <button
-                                    id="engine-trigger"
-                                    class="engine-trigger"
-                                    type="button"
-                                    aria-haspopup="menu"
-                                    aria-expanded="false"
-                                >
-                                    <span
-                                        id="engine-badge"
-                                        class="engine-badge"
-                                    ></span>
-                                    <span
-                                        id="engine-label"
-                                        class="engine-label"
-                                    ></span>
-                                    <svg
-                                        class="engine-chevron"
-                                        viewBox="0 0 24 24"
-                                        aria-hidden="true"
-                                    >
-                                        <path d="m6 9 6 6 6-6" />
-                                    </svg>
-                                </button>
-                                <div
-                                    id="engine-menu"
-                                    class="engine-menu"
-                                    role="menu"
-                                    hidden
-                                ></div>
+                    <section class="search-section" aria-label="Search">
+                        <div class="search-shell">
+                            <div class="search-edge search-edge-left" aria-hidden="true">
+                                (
                             </div>
 
-                            <label class="search-input-wrap" for="search-input">
-                                <input
-                                    id="search-input"
-                                    type="text"
-                                    autocomplete="off"
-                                    spellcheck="false"
-                                    placeholder="TYPE YOUR QUERY"
-                                />
-                            </label>
+                            <div class="search-panel">
+                                <div class="engine-picker">
+                                    <button
+                                        id="engine-trigger"
+                                        class="engine-trigger"
+                                        type="button"
+                                        aria-haspopup="menu"
+                                        aria-expanded="false"
+                                    >
+                                        <span
+                                            id="engine-badge"
+                                            class="engine-badge"
+                                        ></span>
+                                        <span
+                                            id="engine-label"
+                                            class="engine-label"
+                                        ></span>
+                                        <svg
+                                            class="engine-chevron"
+                                            viewBox="0 0 24 24"
+                                            aria-hidden="true"
+                                        >
+                                            <path d="m6 9 6 6 6-6" />
+                                        </svg>
+                                    </button>
+                                    <div
+                                        id="engine-menu"
+                                        class="engine-menu"
+                                        role="menu"
+                                        hidden
+                                    ></div>
+                                </div>
 
-                            <button
-                                id="search-submit"
-                                class="search-submit"
-                                type="button"
-                                aria-label="Search"
-                            >
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <circle cx="11" cy="11" r="7"></circle>
-                                    <path d="m20 20-3.8-3.8"></path>
-                                </svg>
-                            </button>
-                        </div>
+                                <label class="search-input-wrap" for="search-input">
+                                    <input
+                                        id="search-input"
+                                        type="text"
+                                        autocomplete="off"
+                                        spellcheck="false"
+                                        placeholder="TYPE YOUR QUERY"
+                                    />
+                                </label>
 
-                        <div class="search-edge search-edge-right" aria-hidden="true">
-                            )
+                                <button
+                                    id="search-submit"
+                                    class="search-submit"
+                                    type="button"
+                                    aria-label="Search"
+                                >
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle cx="11" cy="11" r="7"></circle>
+                                        <path d="m20 20-3.8-3.8"></path>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div class="search-edge search-edge-right" aria-hidden="true">
+                                )
+                            </div>
                         </div>
-                    </div>
-                </section>
+                    </section>
+                </div>
             </main>
         </div>
 
@@ -164,6 +181,7 @@
             data-modal="bookmarks"
         >
             <div class="modal-panel bookmarks-modal" role="dialog" aria-modal="true">
+                <div id="bookmark-pattern" class="bookmark-pattern" aria-hidden="true"></div>
                 <div id="bookmarks-grid" class="bookmarks-grid"></div>
             </div>
         </div>
