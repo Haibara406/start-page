@@ -1,6 +1,7 @@
 legacy-build/
 .codex-temp/
 dist/
+out/
+.next/
 node_modules/
 .DS_Store
-

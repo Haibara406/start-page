@@ -2,7 +2,24 @@
   "name": "start-page",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "node scripts/build-pages.mjs"
+    "dev": "next dev",
+    "build": "next build && rm -rf dist && cp -R out dist && cp CNAME dist/CNAME",
+    "start": "python3 -m http.server 4173 -d dist",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "gsap": "^3.14.2",
+    "next": "^16.1.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "split-type": "^0.3.4",
+    "tailwindcss": "^4.1.17"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "eslint-config-next": "^16.1.1"
   }
 }
