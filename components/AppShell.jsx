@@ -41,7 +41,21 @@ function writeJson(key, value) {
 
 function normalizeBookmarks(items) {
   return [...items]
-    .map((item, index) => ({ ...item, id: item.id || `bm-${Date.now()}-${index}`, position: Number.isFinite(item.position) ? item.position : index }))
+    .map((item, index) => {
+      try {
+        const url = normalizeUrl(String(item.url || ""));
+        return {
+          ...item,
+          url,
+          iconUrl: normalizeIconUrl(item.iconUrl || item.icon || item.icon_uri, url) || preferredIconUrl(url),
+          id: item.id || `bm-${Date.now()}-${index}`,
+          position: Number.isFinite(item.position) ? item.position : index,
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean)
     .sort((a, b) => a.position - b.position)
     .map((item, index) => ({ ...item, position: index }));
 }
@@ -193,7 +207,7 @@ export default function AppShell() {
     const sorted = [...bookmarks].sort((a, b) => a.position - b.position);
     if (format === "html") {
       const rows = sorted
-        .map((bookmark) => `    <DT><A HREF="${escapeHtml(bookmark.url)}">${escapeHtml(bookmark.title)}</A>`)
+        .map((bookmark) => `    <DT><A HREF="${escapeHtml(bookmark.url)}"${bookmark.iconUrl ? ` ICON="${escapeHtml(bookmark.iconUrl)}"` : ""}>${escapeHtml(bookmark.title)}</A>`)
         .join("\n");
       downloadText(`navir-bookmarks-${Date.now()}.html`, "text/html", `<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>Bookmarks</TITLE>\n<H1>Bookmarks</H1>\n<DL><p>\n${rows}\n</DL><p>\n`);
       showToast(t("bookmarksExported"));
@@ -292,11 +306,13 @@ export default function AppShell() {
         onClose={() => setFormState(null)}
         t={t}
         onSave={(bookmark) => {
+          const url = normalizeUrl(bookmark.url);
+          const nextBookmark = { ...bookmark, url, iconUrl: normalizeIconUrl(bookmark.iconUrl, url) || preferredIconUrl(url) };
           setBookmarks((current) => {
             if (bookmark.id) {
-              return normalizeBookmarks(current.map((item) => (item.id === bookmark.id ? { ...item, ...bookmark } : item)));
+              return normalizeBookmarks(current.map((item) => (item.id === bookmark.id ? { ...item, ...nextBookmark } : item)));
             }
-            return normalizeBookmarks([...current, { ...bookmark, id: `bm-${Date.now()}`, position: current.length, createdAt: new Date().toISOString() }]);
+            return normalizeBookmarks([...current, { ...nextBookmark, id: `bm-${Date.now()}`, position: current.length, createdAt: new Date().toISOString() }]);
           });
           setFormState(null);
           setBookmarksOpen(true);
@@ -665,7 +681,7 @@ function BookmarkPattern() {
 function BookmarkVisual({ bookmark }) {
   const [sourceIndex, setSourceIndex] = useState(0);
   const host = getHostname(bookmark.url);
-  const sources = useMemo(() => faviconSources(bookmark.url), [bookmark.url]);
+  const sources = useMemo(() => faviconSources(bookmark.url, bookmark.iconUrl), [bookmark.url, bookmark.iconUrl]);
   if (sourceIndex < sources.length) {
     return (
       <span className="bookmark-icon-shell">
@@ -683,7 +699,7 @@ function BookmarkVisual({ bookmark }) {
 }
 
 function BookmarkForm({ formState, onClose, onSave, t }) {
-  const [draft, setDraft] = useState(() => formState || { title: "", url: "" });
+  const [draft, setDraft] = useState(() => formState || { title: "", url: "", iconUrl: "" });
   const panelRef = useRef(null);
   useLayoutEffect(() => {
     if (!formState || !panelRef.current) return undefined;
@@ -703,10 +719,15 @@ function BookmarkForm({ formState, onClose, onSave, t }) {
         <form onSubmit={(event) => {
           event.preventDefault();
           const url = normalizeUrl(draft.url);
-          onSave({ ...draft, url, title: draft.title.trim() || new URL(url).hostname });
+          onSave({ ...draft, url, title: draft.title.trim() || new URL(url).hostname, iconUrl: normalizeIconUrl(draft.iconUrl, url) || preferredIconUrl(url) });
         }}>
           <label>{t("title")}<input name="title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder={t("titlePlaceholder")} /></label>
-          <label>{t("url")}<input name="url" value={draft.url} onChange={(event) => setDraft({ ...draft, url: event.target.value })} placeholder={t("urlPlaceholder")} required /></label>
+          <label>{t("url")}<input name="url" value={draft.url} onChange={(event) => setDraft({ ...draft, url: event.target.value })} onBlur={() => {
+            try {
+              const url = normalizeUrl(draft.url);
+              setDraft((current) => ({ ...current, url, iconUrl: normalizeIconUrl(current.iconUrl, url) || preferredIconUrl(url) }));
+            } catch {}
+          }} placeholder={t("urlPlaceholder")} required /></label>
           <div className="form-actions"><button className="primary-action" type="submit">{t("save")}</button><button className="secondary-action" type="button" onClick={onClose}>{t("cancel")}</button></div>
         </form>
       </div>
@@ -714,12 +735,15 @@ function BookmarkForm({ formState, onClose, onSave, t }) {
   );
 }
 
-function faviconSources(url) {
+function faviconSources(url, iconUrl) {
   try {
     const parsed = new URL(normalizeUrl(url));
     const origin = parsed.origin;
     const hostname = parsed.hostname;
-    return [
+    return uniqueUrls([
+      normalizeIconUrl(iconUrl, parsed.href),
+      preferredIconUrl(url),
+      ...domainIconAliases(hostname),
       `${origin}/favicon.ico`,
       `${origin}/favicon.svg`,
       `${origin}/favicon-32x32.png`,
@@ -730,9 +754,51 @@ function faviconSources(url) {
       `${origin}/apple-touch-icon-180x180.png`,
       `https://icons.duckduckgo.com/ip3/${hostname}.ico`,
       `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=128`,
-    ];
+    ]);
   } catch {
     return [];
+  }
+}
+
+function preferredIconUrl(url) {
+  const host = getHostname(url);
+  const defaults = defaultBookmarks.find((bookmark) => getHostname(bookmark.url) === host);
+  if (defaults?.iconUrl) return defaults.iconUrl;
+  const aliases = domainIconAliases(host);
+  return aliases[0] || "";
+}
+
+function domainIconAliases(hostname) {
+  if (!hostname) return [];
+  if (hostname.includes("deepseek.com")) return ["https://www.deepseek.com/favicon.ico"];
+  if (hostname.includes("chatgpt.com") || hostname.includes("openai.com")) return [
+    "https://icons.duckduckgo.com/ip3/chatgpt.com.ico",
+    "https://www.google.com/s2/favicons?domain=chatgpt.com&sz=128",
+  ];
+  if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) return ["https://www.youtube.com/favicon.ico"];
+  return [];
+}
+
+function uniqueUrls(urls) {
+  return Array.from(new Set(urls.filter(Boolean)));
+}
+
+function normalizeIconUrl(iconUrl, pageUrl) {
+  const value = String(iconUrl || "").trim();
+  if (!value) return "";
+  if (/^data:image\/(?:png|jpe?g|gif|webp|svg\+xml|x-icon|vnd\.microsoft\.icon)/i.test(value)) {
+    return value;
+  }
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+  if (value.startsWith("//")) {
+    return `https:${value}`;
+  }
+  try {
+    return new URL(value, normalizeUrl(pageUrl)).href;
+  } catch {
+    return "";
   }
 }
 
@@ -780,7 +846,11 @@ function parseImportedBookmarks(filename, text) {
     }
     const parsedDocument = new DOMParser().parseFromString(text, "text/html");
     const anchors = Array.from(parsedDocument.querySelectorAll("a[href]"));
-    return normalizeImportedList(anchors.map((anchor) => ({ title: anchor.textContent?.trim(), url: anchor.getAttribute("href") })));
+    return normalizeImportedList(anchors.map((anchor) => ({
+      title: anchor.textContent?.trim(),
+      url: anchor.getAttribute("href"),
+      iconUrl: anchor.getAttribute("icon") || anchor.getAttribute("icon_uri"),
+    })));
   } catch {
     return [];
   }
@@ -791,7 +861,8 @@ function normalizeImportedList(list) {
     .map((bookmark) => {
       try {
         const url = normalizeUrl(String(bookmark.url || bookmark.href || ""));
-        return { title: String(bookmark.title || bookmark.name || new URL(url).hostname).trim(), url };
+        const iconUrl = String(bookmark.iconUrl || bookmark.icon || bookmark.icon_uri || "").trim();
+        return { title: String(bookmark.title || bookmark.name || new URL(url).hostname).trim(), url, iconUrl: normalizeIconUrl(iconUrl, url) || preferredIconUrl(url) };
       } catch {
         return null;
       }
