@@ -41,6 +41,15 @@ html.dark {
   --border-default: #fff;
 }
 
+html.dark .world-map-layer {
+  filter: saturate(1.35) contrast(1.18) brightness(0.9);
+}
+
+html.dark .china-highlight path {
+  opacity: 0.68;
+  stroke: #ff8b5d;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -163,6 +172,80 @@ button {
   background-repeat: no-repeat;
   opacity: 0;
   transform-origin: center;
+  filter: saturate(1.18) contrast(1.08);
+}
+
+.world-map-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform-origin: center;
+}
+
+.world-map-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.china-highlight path {
+  fill: color-mix(in srgb, var(--color-accent) 78%, #d90000 22%);
+  opacity: 0.52;
+  stroke: color-mix(in srgb, var(--color-accent-dark) 55%, #ff2f00 45%);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color-accent) 52%, transparent));
+}
+
+.sea-boundary {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-accent) 76%, #ff1f1f 24%);
+  stroke-width: 2.4;
+  stroke-dasharray: 8 8;
+  opacity: 0.78;
+}
+
+.map-marker {
+  color: var(--color-accent);
+}
+
+.map-marker circle,
+.map-marker ellipse {
+  fill: color-mix(in srgb, var(--color-accent) 82%, #ff1f1f 18%);
+  stroke: var(--border-default);
+  stroke-width: 2;
+}
+
+.map-marker path {
+  stroke: var(--border-default);
+  stroke-width: 2;
+}
+
+.map-marker text {
+  fill: var(--text-primary);
+  paint-order: stroke fill;
+  stroke: var(--bg-main);
+  stroke-width: 3;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.taiwan-popup {
+  position: absolute;
+  top: 61%;
+  left: 80%;
+  max-width: min(300px, 34vw);
+  padding: 10px 12px;
+  border: 3px solid var(--border-default);
+  background: color-mix(in srgb, var(--bg-main) 84%, transparent);
+  color: var(--text-primary);
+  box-shadow: 8px 8px 0 color-mix(in srgb, var(--border-default) 72%, transparent);
+  font-size: clamp(12px, 1.45vw, 16px);
+  font-weight: 800;
+  line-height: 1.25;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  will-change: opacity, transform;
 }
 
 .background-words {
@@ -341,48 +424,69 @@ button {
 
 .engine-menu {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px);
   left: 0;
   z-index: 40;
-  min-width: 200px;
+  width: 172px;
+  max-height: clamp(160px, calc(100vh - 520px), 252px);
+  overflow: auto;
   border: 3px solid var(--border-default);
   background: var(--bg-main);
-  box-shadow: 8px 8px 0 #000;
+  box-shadow: none;
 }
 
 .engine-option {
   width: 100%;
+  min-height: 42px;
   display: grid;
-  grid-template-columns: 24px 1fr;
-  gap: 10px;
+  grid-template-columns: 24px minmax(0, 1fr) 12px;
+  gap: 8px;
   align-items: center;
-  padding: 12px 14px;
+  padding: 8px 10px;
   border: 0;
-  border-bottom: 2px solid var(--border-default);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-default) 22%, transparent);
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
   text-align: left;
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .engine-option:last-child {
   border-bottom: 0;
 }
 
-.engine-option:hover {
+.engine-option:hover,
+.engine-option.is-active {
   background: var(--color-accent);
-  color: var(--color-white);
+  color: #fff;
 }
 
-.engine-option.is-active {
-  background: var(--color-black);
-  color: var(--color-white);
+.engine-option > span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .engine-option-icon {
   display: grid;
   place-items: center;
+}
+
+.engine-option-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.engine-option-check {
+  color: currentColor;
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
 }
 
 #search-input {
@@ -435,6 +539,7 @@ button {
 }
 
 .brand-mark {
+  max-width: min(44vw, 640px);
   user-select: none;
 }
 
@@ -448,8 +553,17 @@ button {
   will-change: transform, opacity;
 }
 
+.brand-title {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .brand-subline {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
   margin-top: 16px;
+  overflow-wrap: anywhere;
 }
 
 .brand-dot {
@@ -633,6 +747,7 @@ button {
 }
 
 .setting-block select,
+.setting-block input,
 .form-modal input {
   width: 100%;
   padding: 11px 14px;
@@ -741,8 +856,32 @@ button {
 .bookmark-pattern {
   position: absolute;
   inset: 0;
-  opacity: 0.25;
-  background-image: repeating-linear-gradient(45deg, transparent 0 18px, color-mix(in srgb, var(--color-accent) 12%, transparent) 18px 20px, transparent 20px 38px);
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.pattern-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 185%;
+  transform: translate(-50%, -50%) rotate(45deg) scale(3);
+  transform-origin: center;
+}
+
+.pattern-line {
+  color: color-mix(in srgb, var(--text-muted) 58%, var(--color-accent) 18%);
+  font-family: SFMono-Regular, Consolas, Liberation Mono, monospace;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  line-height: 2.35;
+  white-space: nowrap;
+  animation: pattern-drift var(--pattern-duration) linear infinite;
+  transform: translateX(var(--pattern-offset, 0));
+  will-change: transform;
 }
 
 .bookmarks-grid {
@@ -777,10 +916,21 @@ button {
   opacity: 0.5;
 }
 
-.bookmark-card img {
+.bookmark-card img,
+.bookmark-favicon {
   width: 42px;
   height: 42px;
   object-fit: contain;
+}
+
+.bookmark-letter-icon {
+  display: inline-grid;
+  place-items: center;
+  border: 3px solid var(--border-default);
+  border-radius: 10px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .bookmark-card p {
@@ -879,6 +1029,15 @@ button {
   font-weight: 600;
 }
 
+@keyframes pattern-drift {
+  from {
+    transform: translateX(var(--pattern-offset, 0));
+  }
+  to {
+    transform: translateX(calc(var(--pattern-offset, 0) + 220px));
+  }
+}
+
 @media (min-width: 48rem) {
   .top-actions {
     top: 32px;
@@ -949,8 +1108,18 @@ button {
     left: 24px;
   }
 
+  .brand-mark {
+    max-width: calc(100vw - 104px);
+  }
+
   .brand-subline {
     margin-top: 10px;
+  }
+
+  .taiwan-popup {
+    left: 72%;
+    max-width: 46vw;
+    font-size: 11px;
   }
 
   .settings-modal {
@@ -986,5 +1155,18 @@ button {
   .bookmarks-modal {
     width: 96vw;
     padding: 42px 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pattern-line {
+    animation: none;
+  }
+
+  .brand-word,
+  .taiwan-popup,
+  .world-map-layer,
+  .world-map-overlay {
+    will-change: auto;
   }
 }

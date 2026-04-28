@@ -5,8 +5,9 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import BackgroundEffects from "./BackgroundEffects";
-import { ChevronIcon, EngineIcon, PencilIcon, SearchIcon, SettingsIcon, TrashIcon } from "./icons";
+import { BookmarkSiteIcon, ChevronIcon, EngineIcon, LetterIcon, PencilIcon, SearchIcon, SettingsIcon, TrashIcon } from "./icons";
 import { backgroundOptions, colorSchemes, defaultBookmarks, defaultSettings, searchEngines, storageKeys } from "../lib/config";
+import { getLanguage, translate } from "../lib/i18n";
 
 function deepMerge(base, incoming) {
   const output = Array.isArray(base) ? [...base] : { ...base };
@@ -56,6 +57,8 @@ export default function AppShell() {
   const [isMobile, setIsMobile] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const toastTimerRef = useRef(null);
+  const language = getLanguage(settings.language);
+  const t = useMemo(() => (key, params) => translate(language, key, params), [language]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -71,6 +74,7 @@ export default function AppShell() {
   useEffect(() => {
     const scheme = colorSchemes.find((item) => item.value === settings.appearance.colorScheme) || colorSchemes[0];
     const root = document.documentElement;
+    root.lang = language;
     root.dataset.colorScheme = scheme.value;
     root.style.setProperty("--color-accent", scheme.color);
     root.style.setProperty("--color-accent-hover", scheme.hover);
@@ -91,7 +95,7 @@ export default function AppShell() {
       query.addEventListener("change", applyTheme);
       return () => query.removeEventListener("change", applyTheme);
     }
-  }, [settings, hydrated]);
+  }, [settings, hydrated, language]);
 
   useEffect(() => {
     if (hydrated) {
@@ -160,6 +164,14 @@ export default function AppShell() {
     setSettings((current) => ({ ...current, appearance: { ...current.appearance, ...patch } }));
   }
 
+  function updateLanguage(languageValue) {
+    setSettings((current) => ({ ...current, language: getLanguage(languageValue) }));
+  }
+
+  function updateBrand(patch) {
+    setSettings((current) => ({ ...current, brand: { ...defaultSettings.brand, ...current.brand, ...patch } }));
+  }
+
   function updateSearch(patch) {
     setSettings((current) => ({ ...current, search: { ...current.search, ...patch } }));
     if (patch.defaultEngine) {
@@ -184,7 +196,7 @@ export default function AppShell() {
         .map((bookmark) => `    <DT><A HREF="${escapeHtml(bookmark.url)}">${escapeHtml(bookmark.title)}</A>`)
         .join("\n");
       downloadText(`navir-bookmarks-${Date.now()}.html`, "text/html", `<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>Bookmarks</TITLE>\n<H1>Bookmarks</H1>\n<DL><p>\n${rows}\n</DL><p>\n`);
-      showToast("Bookmarks exported.");
+      showToast(t("bookmarksExported"));
       return;
     }
     downloadText(
@@ -192,7 +204,7 @@ export default function AppShell() {
       "application/json",
       JSON.stringify({ version: 1, exportDate: new Date().toISOString(), bookmarks: sorted }, null, 2),
     );
-    showToast("Bookmarks exported.");
+    showToast(t("bookmarksExported"));
   }
 
   function importBookmarks(file) {
@@ -201,17 +213,17 @@ export default function AppShell() {
     reader.onload = () => {
       const imported = parseImportedBookmarks(file.name, String(reader.result || ""));
       if (!imported.length) {
-        showToast("No valid bookmarks found.", "error");
+        showToast(t("noValidBookmarks"), "error");
         return;
       }
       setBookmarks((current) => {
         const existingUrls = new Set(current.map((bookmark) => normalizeUrl(bookmark.url)));
         const unique = imported.filter((bookmark) => !existingUrls.has(normalizeUrl(bookmark.url)));
         if (!unique.length) {
-          showToast("All imported bookmarks already exist.", "error");
+          showToast(t("allImportedExist"), "error");
           return current;
         }
-        showToast(`Imported ${unique.length} bookmarks.`);
+        showToast(t("importedBookmarks", { count: unique.length }));
         const startIndex = current.length;
         return normalizeBookmarks([
           ...current,
@@ -224,28 +236,30 @@ export default function AppShell() {
         ]);
       });
     };
-    reader.onerror = () => showToast("Failed to read file.", "error");
+    reader.onerror = () => showToast(t("failedReadFile"), "error");
     reader.readAsText(file);
   }
 
   return (
     <main className="app-main">
-      <BackgroundEffects effect={settings.appearance.backgroundEffect} showGrid={settings.appearance.showGrid} />
+      <BackgroundEffects effect={settings.appearance.backgroundEffect} showGrid={settings.appearance.showGrid} taiwanLabel={t("taiwanPopup")} />
       <div className="content-stage">
         <div className="center-stack">
-          <Clock format={settings.appearance.clockFormat} />
-          <SearchBox currentEngine={currentEngine} setCurrentEngineId={setCurrentEngineId} settings={settings} />
+          <Clock format={settings.appearance.clockFormat} t={t} />
+          <SearchBox currentEngine={currentEngine} setCurrentEngineId={setCurrentEngineId} settings={settings} t={t} />
         </div>
       </div>
-      <div className="brand-position"><BrandMark /></div>
+      <div className="brand-position"><BrandMark brand={settings.brand} /></div>
       <div className="top-actions">
-        <button className="round-button" type="button" aria-label="Open settings" onClick={() => setSettingsOpen(true)}><SettingsIcon /></button>
+        <button className="round-button" type="button" aria-label={t("openSettings")} onClick={() => setSettingsOpen(true)}><SettingsIcon /></button>
       </div>
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         settings={settings}
         updateAppearance={updateAppearance}
+        updateLanguage={updateLanguage}
+        updateBrand={updateBrand}
         updateSearch={updateSearch}
         updateBookmarks={updateBookmarksSettings}
         exportBookmarks={exportBookmarks}
@@ -258,8 +272,9 @@ export default function AppShell() {
           setSettings(defaultSettings);
           setBookmarks(defaultBookmarks);
           setCurrentEngineId(defaultSettings.search.defaultEngine);
-          showToast("Local data reset.");
+          showToast(t("localDataReset"));
         }}
+        t={t}
       />
       <BookmarksModal
         open={bookmarksOpen}
@@ -269,11 +284,13 @@ export default function AppShell() {
         showTitle={settings.bookmarks.showTitle}
         setBookmarks={setBookmarks}
         setFormState={setFormState}
+        t={t}
       />
       <BookmarkForm
         key={formState?.id || (formState ? "new" : "closed")}
         formState={formState}
         onClose={() => setFormState(null)}
+        t={t}
         onSave={(bookmark) => {
           setBookmarks((current) => {
             if (bookmark.id) {
@@ -290,7 +307,7 @@ export default function AppShell() {
   );
 }
 
-function Clock({ format }) {
+function Clock({ format, t }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -305,7 +322,7 @@ function Clock({ format }) {
   }, [now, format]);
   return (
     <section className="clock-block" aria-live="polite">
-      <div className="text-small tracking-widest">LOCAL TIME</div>
+      <div className="text-small tracking-widest">{t("localTime")}</div>
       <div className="text-large clock-value">
         {value.hours}<span className="text-accent">:</span>{value.minutes}{value.period && <span className="text-medium clock-period">{value.period}</span>}
       </div>
@@ -313,7 +330,7 @@ function Clock({ format }) {
   );
 }
 
-function SearchBox({ currentEngine, setCurrentEngineId, settings }) {
+function SearchBox({ currentEngine, setCurrentEngineId, settings, t }) {
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -330,7 +347,7 @@ function SearchBox({ currentEngine, setCurrentEngineId, settings }) {
   }
 
   return (
-    <section className={`search-row ${focused ? "is-active" : ""}`} aria-label="Search">
+    <section className={`search-row ${focused ? "is-active" : ""}`} aria-label={t("search")}>
       <div className="search-edge search-edge-left">(</div>
       <div className="search-panel">
         <div className="engine-picker">
@@ -344,6 +361,7 @@ function SearchBox({ currentEngine, setCurrentEngineId, settings }) {
                 <button
                   className={`engine-option ${engine.id === currentEngine.id ? "is-active" : ""}`}
                   type="button"
+                  role="menuitem"
                   key={engine.id}
                   onClick={() => {
                     setCurrentEngineId(engine.id);
@@ -352,6 +370,7 @@ function SearchBox({ currentEngine, setCurrentEngineId, settings }) {
                 >
                   <span className="engine-option-icon"><EngineIcon id={engine.id} size={20} /></span>
                   <span>{engine.name}</span>
+                  <span className="engine-option-check">{engine.id === currentEngine.id ? "●" : ""}</span>
                 </button>
               ))}
             </div>
@@ -365,19 +384,21 @@ function SearchBox({ currentEngine, setCurrentEngineId, settings }) {
           onBlur={() => setFocused(false)}
           onKeyDown={(event) => event.key === "Enter" && runSearch()}
           type="text"
-          placeholder="TYPE YOUR QUERY"
+          aria-label={t("search")}
+          placeholder={t("searchPlaceholder")}
           spellCheck={false}
           autoComplete="off"
         />
-        <button className="search-submit" type="button" aria-label="Search" onClick={runSearch}><SearchIcon /></button>
+        <button className="search-submit" type="button" aria-label={t("search")} onClick={runSearch}><SearchIcon /></button>
       </div>
       <div className="search-edge search-edge-right">)</div>
     </section>
   );
 }
 
-function BrandMark() {
+function BrandMark({ brand }) {
   const ref = useRef(null);
+  const brandText = { ...defaultSettings.brand, ...brand };
   useLayoutEffect(() => {
     if (!ref.current) return undefined;
     const context = gsap.context(() => {
@@ -386,20 +407,20 @@ function BrandMark() {
     return () => {
       context.revert();
     };
-  }, []);
+  }, [brandText.title, brandText.primaryTag, brandText.secondaryTag]);
   return (
-    <div ref={ref} className="brand-mark" aria-label="Haibara">
+    <div ref={ref} className="brand-mark" aria-label={brandText.title}>
       <h1>
-        <div className="brand-word text-hero">HAIBARA</div>
+        <div className="brand-word text-hero brand-title">{brandText.title}</div>
         <div className="brand-word text-medium brand-subline">
-          <span className="text-inverted">SEARCH</span><span className="text-accent brand-dot">•</span><span>DISCOVER</span>
+          <span className="text-inverted">{brandText.primaryTag}</span><span className="text-accent brand-dot">•</span><span>{brandText.secondaryTag}</span>
         </div>
       </h1>
     </div>
   );
 }
 
-function SettingsModal({ open, onClose, settings, updateAppearance, updateSearch, updateBookmarks, exportBookmarks, importBookmarks, resetSettings, resetLocalData }) {
+function SettingsModal({ open, onClose, settings, updateAppearance, updateLanguage, updateBrand, updateSearch, updateBookmarks, exportBookmarks, importBookmarks, resetSettings, resetLocalData, t }) {
   const [active, setActive] = useState("appearance");
   const backdropRef = useRef(null);
   const panelRef = useRef(null);
@@ -413,16 +434,17 @@ function SettingsModal({ open, onClose, settings, updateAppearance, updateSearch
   }, [open]);
   if (!open) return null;
   const nav = [
-    ["appearance", "APPEARANCE", "◐"],
-    ["search", "SEARCH", "⌕"],
-    ["bookmarks", "BOOKMARKS", "★"],
-    ["data", "DATA", "⬡"],
+    ["appearance", t("navAppearance"), "◐"],
+    ["personalization", t("navPersonalization"), "✎"],
+    ["search", t("navSearch"), "⌕"],
+    ["bookmarks", t("navBookmarks"), "★"],
+    ["data", t("navData"), "⬡"],
   ];
   return (
     <div ref={backdropRef} className={`modal-layer is-open ${settings.appearance.enableBlur ? "has-blur" : ""}`} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <div ref={panelRef} className="settings-modal modal-panel" role="dialog" aria-modal="true">
         <aside className="settings-nav">
-          <div className="settings-title">Settings</div>
+          <div className="settings-title">{t("settings")}</div>
           <nav>
             {nav.map(([id, label, icon]) => (
               <button key={id} className={`settings-tab ${active === id ? "is-active" : ""}`} type="button" onClick={() => setActive(id)}>
@@ -432,16 +454,18 @@ function SettingsModal({ open, onClose, settings, updateAppearance, updateSearch
           </nav>
         </aside>
         <section className="settings-content">
-          <button className="modal-close" type="button" aria-label="Close settings" onClick={onClose}>×</button>
-          {active === "appearance" && <AppearanceSettings settings={settings.appearance} update={updateAppearance} />}
-          {active === "search" && <SearchSettings settings={settings.search} update={updateSearch} />}
-          {active === "bookmarks" && <BookmarkSettings settings={settings.bookmarks} update={updateBookmarks} />}
+          <button className="modal-close" type="button" aria-label={t("closeSettings")} onClick={onClose}>×</button>
+          {active === "appearance" && <AppearanceSettings settings={settings.appearance} update={updateAppearance} t={t} />}
+          {active === "personalization" && <PersonalizationSettings settings={settings} updateLanguage={updateLanguage} updateBrand={updateBrand} t={t} />}
+          {active === "search" && <SearchSettings settings={settings.search} update={updateSearch} t={t} />}
+          {active === "bookmarks" && <BookmarkSettings settings={settings.bookmarks} update={updateBookmarks} t={t} />}
           {active === "data" && (
             <DataSettings
               exportBookmarks={exportBookmarks}
               importBookmarks={importBookmarks}
               resetSettings={resetSettings}
               resetLocalData={resetLocalData}
+              t={t}
             />
           )}
         </section>
@@ -462,66 +486,89 @@ function SelectRow({ label, value, options, onChange }) {
   );
 }
 
+function TextRow({ label, value, placeholder, onChange, maxLength = 28 }) {
+  const id = useId();
+  return (
+    <div className="setting-block">
+      <label htmlFor={id}>{label}</label>
+      <input id={id} name={id} value={value} maxLength={maxLength} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+    </div>
+  );
+}
+
 function Switch({ checked, label, onChange }) {
   return <button className={`switch ${checked ? "is-on" : ""}`} type="button" role="switch" aria-label={label} aria-checked={checked} onClick={() => onChange(!checked)}><span /></button>;
 }
 
-function AppearanceSettings({ settings, update }) {
+function AppearanceSettings({ settings, update, t }) {
   return (
     <div className="settings-section">
-      <h2>Appearance</h2>
-      <SelectRow label="Theme" value={settings.theme} onChange={(theme) => update({ theme })} options={[{ value: "light", label: "Light" }, { value: "dark", label: "Dark" }, { value: "system", label: "System" }]} />
-      <SelectRow label="Background Effect" value={settings.backgroundEffect} onChange={(backgroundEffect) => update({ backgroundEffect })} options={backgroundOptions} />
-      <SelectRow label="Clock Format" value={settings.clockFormat} onChange={(clockFormat) => update({ clockFormat })} options={[{ value: "24h", label: "24-Hour (14:30)" }, { value: "12h", label: "12-Hour (2:30 PM)" }]} />
+      <h2>{t("appearance")}</h2>
+      <SelectRow label={t("theme")} value={settings.theme} onChange={(theme) => update({ theme })} options={[{ value: "light", label: t("themeLight") }, { value: "dark", label: t("themeDark") }, { value: "system", label: t("themeSystem") }]} />
+      <SelectRow label={t("backgroundEffect")} value={settings.backgroundEffect} onChange={(backgroundEffect) => update({ backgroundEffect })} options={backgroundOptions.map((option) => ({ ...option, label: t(option.labelKey) }))} />
+      <SelectRow label={t("clockFormat")} value={settings.clockFormat} onChange={(clockFormat) => update({ clockFormat })} options={[{ value: "24h", label: t("clock24") }, { value: "12h", label: t("clock12") }]} />
       <div className="setting-block">
-        <span className="setting-label">Color Scheme</span>
+        <span className="setting-label">{t("colorScheme")}</span>
         <div className="swatch-grid">
           {colorSchemes.map((scheme) => <button key={scheme.value} className={`swatch ${settings.colorScheme === scheme.value ? "is-active" : ""}`} title={scheme.label} style={{ backgroundColor: scheme.color }} onClick={() => update({ colorScheme: scheme.value })} />)}
         </div>
         <p>{colorSchemes.find((scheme) => scheme.value === settings.colorScheme)?.label}</p>
       </div>
-      <div className="switch-row"><div><span className="setting-label">Grid Lines</span><p>Show background grid lines</p></div><Switch label="Grid Lines" checked={settings.showGrid} onChange={(showGrid) => update({ showGrid })} /></div>
-      <div className="switch-row"><div><span className="setting-label">Blur Effect</span><p>Enable backdrop blur (may affect performance on mobile)</p></div><Switch label="Blur Effect" checked={settings.enableBlur} onChange={(enableBlur) => update({ enableBlur })} /></div>
+      <div className="switch-row"><div><span className="setting-label">{t("gridLines")}</span><p>{t("gridLinesNote")}</p></div><Switch label={t("gridLines")} checked={settings.showGrid} onChange={(showGrid) => update({ showGrid })} /></div>
+      <div className="switch-row"><div><span className="setting-label">{t("blurEffect")}</span><p>{t("blurEffectNote")}</p></div><Switch label={t("blurEffect")} checked={settings.enableBlur} onChange={(enableBlur) => update({ enableBlur })} /></div>
     </div>
   );
 }
 
-function SearchSettings({ settings, update }) {
+function PersonalizationSettings({ settings, updateLanguage, updateBrand, t }) {
+  const brand = { ...defaultSettings.brand, ...settings.brand };
   return (
     <div className="settings-section">
-      <h2>Search</h2>
-      <SelectRow label="Default Search Engine" value={settings.defaultEngine} onChange={(defaultEngine) => update({ defaultEngine })} options={searchEngines.map((engine) => ({ value: engine.id, label: engine.name }))} />
-      <div className="switch-row"><div><span className="setting-label">Open in New Tab</span><p>Open search results in a new browser tab</p></div><Switch label="Open in New Tab" checked={settings.openInNewTab} onChange={(openInNewTab) => update({ openInNewTab })} /></div>
+      <h2>{t("personalization")}</h2>
+      <SelectRow label={t("language")} value={getLanguage(settings.language)} onChange={updateLanguage} options={[{ value: "en", label: t("languageEnglish") }, { value: "zh", label: t("languageChinese") }]} />
+      <TextRow label={t("brandTitle")} value={brand.title} placeholder="HAIBARA" maxLength={24} onChange={(title) => updateBrand({ title })} />
+      <TextRow label={t("brandPrimaryTag")} value={brand.primaryTag} placeholder="SEARCH" maxLength={16} onChange={(primaryTag) => updateBrand({ primaryTag })} />
+      <TextRow label={t("brandSecondaryTag")} value={brand.secondaryTag} placeholder="DISCOVER" maxLength={16} onChange={(secondaryTag) => updateBrand({ secondaryTag })} />
     </div>
   );
 }
 
-function BookmarkSettings({ settings, update }) {
+function SearchSettings({ settings, update, t }) {
   return (
     <div className="settings-section">
-      <h2>Bookmarks</h2>
-      <div className="switch-row"><div><span className="setting-label">Show Bookmark Titles</span><p>Display title text below bookmark icons</p></div><Switch label="Show Bookmark Titles" checked={settings.showTitle} onChange={(showTitle) => update({ showTitle })} /></div>
+      <h2>{t("search")}</h2>
+      <SelectRow label={t("defaultSearchEngine")} value={settings.defaultEngine} onChange={(defaultEngine) => update({ defaultEngine })} options={searchEngines.map((engine) => ({ value: engine.id, label: engine.name }))} />
+      <div className="switch-row"><div><span className="setting-label">{t("openInNewTab")}</span><p>{t("openInNewTabNote")}</p></div><Switch label={t("openInNewTab")} checked={settings.openInNewTab} onChange={(openInNewTab) => update({ openInNewTab })} /></div>
     </div>
   );
 }
 
-function DataSettings({ exportBookmarks, importBookmarks, resetSettings, resetLocalData }) {
+function BookmarkSettings({ settings, update, t }) {
+  return (
+    <div className="settings-section">
+      <h2>{t("bookmarks")}</h2>
+      <div className="switch-row"><div><span className="setting-label">{t("showBookmarkTitles")}</span><p>{t("showBookmarkTitlesNote")}</p></div><Switch label={t("showBookmarkTitles")} checked={settings.showTitle} onChange={(showTitle) => update({ showTitle })} /></div>
+    </div>
+  );
+}
+
+function DataSettings({ exportBookmarks, importBookmarks, resetSettings, resetLocalData, t }) {
   const fileInputRef = useRef(null);
   return (
     <div className="settings-section">
-      <h2>Data</h2>
+      <h2>{t("data")}</h2>
       <div className="setting-card">
-        <span className="setting-label">Export Bookmarks</span>
-        <p>Download your current bookmarks as JSON or Netscape HTML.</p>
+        <span className="setting-label">{t("exportBookmarks")}</span>
+        <p>{t("exportBookmarksNote")}</p>
         <div className="setting-actions">
-          <button className="secondary-action" type="button" onClick={() => exportBookmarks("json")}>Export JSON</button>
-          <button className="secondary-action" type="button" onClick={() => exportBookmarks("html")}>Export HTML</button>
+          <button className="secondary-action" type="button" onClick={() => exportBookmarks("json")}>{t("exportJson")}</button>
+          <button className="secondary-action" type="button" onClick={() => exportBookmarks("html")}>{t("exportHtml")}</button>
         </div>
       </div>
       <div className="setting-card">
-        <span className="setting-label">Import Bookmarks</span>
-        <p>Append bookmarks from JSON or HTML. Duplicate URLs are skipped.</p>
-        <button className="secondary-action" type="button" onClick={() => fileInputRef.current?.click()}>Choose File</button>
+        <span className="setting-label">{t("importBookmarks")}</span>
+        <p>{t("importBookmarksNote")}</p>
+        <button className="secondary-action" type="button" onClick={() => fileInputRef.current?.click()}>{t("chooseFile")}</button>
         <input
           ref={fileInputRef}
           className="hidden-file-input"
@@ -534,13 +581,13 @@ function DataSettings({ exportBookmarks, importBookmarks, resetSettings, resetLo
           }}
         />
       </div>
-      <div className="setting-card"><span className="setting-label">Reset Settings</span><p>Restore display and search preferences.</p><button className="secondary-action" type="button" onClick={resetSettings}>Reset Settings</button></div>
-      <div className="setting-card"><span className="setting-label">Reset Local Data</span><p>Restore default settings and bookmarks.</p><button className="danger-action" type="button" onClick={resetLocalData}>Reset Local Data</button></div>
+      <div className="setting-card"><span className="setting-label">{t("resetSettings")}</span><p>{t("resetSettingsNote")}</p><button className="secondary-action" type="button" onClick={resetSettings}>{t("resetSettings")}</button></div>
+      <div className="setting-card"><span className="setting-label">{t("resetLocalData")}</span><p>{t("resetLocalDataNote")}</p><button className="danger-action" type="button" onClick={resetLocalData}>{t("resetLocalData")}</button></div>
     </div>
   );
 }
 
-function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBookmarks, setFormState }) {
+function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBookmarks, setFormState, t }) {
   const [dragging, setDragging] = useState(null);
   const backdropRef = useRef(null);
   const panelRef = useRef(null);
@@ -562,10 +609,15 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
     ids.splice(to, 0, ids.splice(from, 1)[0]);
     setBookmarks(ids.map((id, index) => ({ ...bookmarks.find((item) => item.id === id), position: index })));
   }
+  function deleteBookmark(bookmark) {
+    if (window.confirm(t("confirmDeleteBookmark", { title: bookmark.title }))) {
+      setBookmarks((current) => normalizeBookmarks(current.filter((item) => item.id !== bookmark.id)));
+    }
+  }
   return (
     <div ref={backdropRef} className={`modal-layer is-open ${enableBlur ? "has-blur" : ""}`} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <div ref={panelRef} className="bookmarks-modal modal-panel bookmark-modal" role="dialog" aria-modal="true">
-        <div className="bookmark-pattern" />
+        <BookmarkPattern />
         <div className="bookmarks-grid">
           {sorted.map((bookmark) => (
             <article
@@ -578,10 +630,10 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
               onDragEnd={() => setDragging(null)}
               onDoubleClick={() => window.open(bookmark.url, "_blank", "noopener,noreferrer")}
             >
-              <img src={faviconUrl(bookmark.url)} alt="" />
+              <BookmarkVisual bookmark={bookmark} />
               <div className="bookmark-actions">
-                <button type="button" aria-label="Edit bookmark" onClick={() => setFormState(bookmark)}><PencilIcon /></button>
-                <button type="button" aria-label="Delete bookmark" onClick={() => setBookmarks((current) => normalizeBookmarks(current.filter((item) => item.id !== bookmark.id)))}><TrashIcon /></button>
+                <button type="button" aria-label={t("editBookmark")} onClick={() => setFormState(bookmark)}><PencilIcon /></button>
+                <button type="button" aria-label={t("deleteBookmark")} onClick={() => deleteBookmark(bookmark)}><TrashIcon /></button>
               </div>
               {showTitle && <p>{bookmark.title}</p>}
             </article>
@@ -593,7 +645,37 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
   );
 }
 
-function BookmarkForm({ formState, onClose, onSave }) {
+function BookmarkPattern() {
+  const symbols = ["/", "\\", "|", "-", "_", "+", "=", "*", "#", ".", "~", "^", "<", ">"];
+  const lines = Array.from({ length: 28 }, (_, rowIndex) => {
+    const text = Array.from({ length: 128 }, (_, index) => symbols[(index * 5 + rowIndex * 7) % symbols.length]).join(" ");
+    return { id: rowIndex, text, duration: 18 + (rowIndex % 6) * 2.6, offset: rowIndex % 2 === 0 ? "-120px" : "-28px" };
+  });
+  return (
+    <div className="bookmark-pattern" aria-hidden="true">
+      <div className="pattern-stage">
+        {lines.map((line) => (
+          <div className="pattern-line" key={line.id} style={{ "--pattern-duration": `${line.duration}s`, "--pattern-offset": line.offset }}>{line.text}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BookmarkVisual({ bookmark }) {
+  const [failed, setFailed] = useState(false);
+  const host = getHostname(bookmark.url);
+  const iconId = knownSiteIconId(host);
+  if (iconId) {
+    return <BookmarkSiteIcon id={iconId} size={42} />;
+  }
+  if (!failed) {
+    return <img className="bookmark-favicon" src={faviconUrl(bookmark.url)} alt="" loading="lazy" onError={() => setFailed(true)} />;
+  }
+  return <LetterIcon label={bookmark.title || host} size={42} />;
+}
+
+function BookmarkForm({ formState, onClose, onSave, t }) {
   const [draft, setDraft] = useState(() => formState || { title: "", url: "" });
   const panelRef = useRef(null);
   useLayoutEffect(() => {
@@ -608,7 +690,7 @@ function BookmarkForm({ formState, onClose, onSave }) {
     <div className="modal-layer is-open">
       <div ref={panelRef} className="form-modal modal-panel" role="dialog" aria-modal="true">
         <div className="form-header">
-          <div><span>BOOKMARK</span><h2>{draft.id ? "Edit Bookmark" : "Add Bookmark"}</h2></div>
+          <div><span>{t("bookmark")}</span><h2>{draft.id ? t("editBookmarkTitle") : t("addBookmarkTitle")}</h2></div>
           <button className="modal-close" type="button" onClick={onClose}>×</button>
         </div>
         <form onSubmit={(event) => {
@@ -616,9 +698,9 @@ function BookmarkForm({ formState, onClose, onSave }) {
           const url = normalizeUrl(draft.url);
           onSave({ ...draft, url, title: draft.title.trim() || new URL(url).hostname });
         }}>
-          <label>Title<input name="title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="My Website" /></label>
-          <label>URL<input name="url" value={draft.url} onChange={(event) => setDraft({ ...draft, url: event.target.value })} placeholder="https://example.com" required /></label>
-          <div className="form-actions"><button className="primary-action" type="submit">Save</button><button className="secondary-action" type="button" onClick={onClose}>Cancel</button></div>
+          <label>{t("title")}<input name="title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder={t("titlePlaceholder")} /></label>
+          <label>{t("url")}<input name="url" value={draft.url} onChange={(event) => setDraft({ ...draft, url: event.target.value })} placeholder={t("urlPlaceholder")} required /></label>
+          <div className="form-actions"><button className="primary-action" type="submit">{t("save")}</button><button className="secondary-action" type="button" onClick={onClose}>{t("cancel")}</button></div>
         </form>
       </div>
     </div>
@@ -631,6 +713,25 @@ function faviconUrl(url) {
   } catch {
     return "";
   }
+}
+
+function getHostname(url) {
+  try {
+    return new URL(normalizeUrl(url)).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function knownSiteIconId(host) {
+  if (!host) return null;
+  if (host.includes("bilibili.com")) return "bilibili";
+  if (host.includes("chatgpt.com") || host.includes("openai.com")) return "openai";
+  if (host.includes("deepseek.com")) return "deepseek";
+  if (host.includes("music.163.com")) return "netease";
+  if (host.includes("github.com")) return "github";
+  if (host.includes("youtube.com") || host.includes("youtu.be")) return "youtube";
+  return null;
 }
 
 function normalizeUrl(url) {

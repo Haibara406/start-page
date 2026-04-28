@@ -13,11 +13,11 @@ const wordColors = [
   "rgba(87, 96, 106, 0.12)",
 ];
 
-export default function BackgroundEffects({ effect, showGrid }) {
+export default function BackgroundEffects({ effect, showGrid, taiwanLabel = "祖国领土，神圣不可侵犯" }) {
   return (
     <div className="background-root" aria-hidden="true">
       {showGrid && <GridLayer />}
-      {effect !== "none" && <EffectLayer key={effect} effect={effect} />}
+      {effect !== "none" && <EffectLayer key={effect} effect={effect} taiwanLabel={taiwanLabel} />}
       <BackgroundWords />
     </div>
   );
@@ -32,7 +32,7 @@ function GridLayer() {
   );
 }
 
-function EffectLayer({ effect }) {
+function EffectLayer({ effect, taiwanLabel }) {
   switch (effect) {
     case "wave":
       return <WaveEffect />;
@@ -43,7 +43,7 @@ function EffectLayer({ effect }) {
     case "layered-steps":
       return <LayeredStepsEffect />;
     case "world-map":
-      return <WorldMapEffect />;
+      return <WorldMapEffect taiwanLabel={taiwanLabel} />;
     case "blob":
     default:
       return <BlobEffect />;
@@ -186,18 +186,58 @@ function LayeredStepsEffect() {
   );
 }
 
-function WorldMapEffect() {
+function WorldMapEffect({ taiwanLabel }) {
   const rootRef = useRef(null);
+  const popupRef = useRef(null);
   useLayoutEffect(() => {
     if (!rootRef.current) return undefined;
     const context = gsap.context(() => {
-      gsap.fromTo(".world-map-layer", { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 1.5, ease: "power2.out" });
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      gsap.fromTo(".world-map-layer, .world-map-overlay", { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: reduceMotion ? 0.01 : 1.5, ease: "power2.out" });
+      if (!popupRef.current) return;
+      if (reduceMotion) {
+        gsap.set(popupRef.current, { opacity: 0.42, scale: 1 });
+        return;
+      }
+      gsap
+        .timeline({ repeat: -1, repeatDelay: 8 + Math.random() * 4, delay: 2.2 })
+        .set(popupRef.current, { opacity: 0, scale: 0.96 })
+        .to(popupRef.current, { opacity: 0.84, scale: 1, duration: 0.18, ease: "power1.out" })
+        .to(popupRef.current, { opacity: 0.25, duration: 0.12, repeat: 3, yoyo: true, ease: "none" })
+        .to(popupRef.current, { opacity: 0, scale: 0.98, duration: 0.45, ease: "power1.in" }, "+=1.35");
     }, rootRef);
     return () => context.revert();
   }, []);
   return (
     <div ref={rootRef} className="effect-shell">
       <div className="world-map-layer" />
+      <div className="world-map-overlay">
+        <svg className="world-map-svg" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <g className="china-highlight">
+            <path d="M690 250C709 233 742 230 760 245C779 261 777 289 760 307C742 326 712 323 693 304C674 285 671 266 690 250Z" />
+            <path d="M723 316C736 309 753 313 762 325C771 338 765 354 750 359C735 364 719 356 714 342C709 331 712 321 723 316Z" />
+          </g>
+          <path className="sea-boundary" d="M664 304C688 330 716 349 753 362C792 375 823 398 843 431" />
+          <g className="region-markers">
+            <g className="map-marker marker-hk">
+              <circle cx="735" cy="315" r="4.5" />
+              <path d="M742 313h36" />
+              <text x="781" y="317">HK</text>
+            </g>
+            <g className="map-marker marker-mo">
+              <circle cx="728" cy="319" r="4.5" />
+              <path d="M688 328h32" />
+              <text x="660" y="333">MO</text>
+            </g>
+            <g className="map-marker marker-tw">
+              <ellipse cx="763" cy="333" rx="8" ry="14" transform="rotate(18 763 333)" />
+              <path d="M776 331h42" />
+              <text x="822" y="336">TW</text>
+            </g>
+          </g>
+        </svg>
+        <div ref={popupRef} className="taiwan-popup">{taiwanLabel}</div>
+      </div>
     </div>
   );
 }
