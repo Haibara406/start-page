@@ -83,7 +83,10 @@
     const backgroundOptions = [
         { id: "blob", label: "Blob Animation" },
         { id: "wave", label: "Wave" },
-        { id: "matrix", label: "Matrix" },
+        { id: "blob-scatter", label: "Blob Scatter" },
+        { id: "layered-peaks", label: "Layered Peaks" },
+        { id: "layered-steps", label: "Layered Steps" },
+        { id: "world-map", label: "World Map" },
         { id: "none", label: "None" },
     ];
 

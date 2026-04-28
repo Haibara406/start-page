@@ -22,6 +22,16 @@
     const elements = {};
     let clockTimer = null;
     let mediaThemeListener = null;
+    let typewriterTimer = null;
+    let typewriterActive = false;
+    let typewriterAbort = 0;
+    const typewriterWords = ["BROWSE", "SEARCH", "SURF", "QUERY", "DISCOVER", "EXPLORE"];
+    const typewriterPositions = [
+        { left: "50%", top: "28%" },
+        { left: "22%", top: "58%" },
+        { left: "72%", top: "67%" },
+        { left: "56%", top: "18%" },
+    ];
 
     document.addEventListener("DOMContentLoaded", init);
 
@@ -66,6 +76,7 @@
         elements.bookmarkUrl = document.getElementById("bookmark-url");
         elements.toastStack = document.getElementById("toast-stack");
         elements.importFileInput = document.getElementById("import-file-input");
+        elements.backgroundTyper = document.getElementById("background-typer");
     }
 
     function bindEvents() {
@@ -119,6 +130,7 @@
 
         elements.importFileInput.addEventListener("change", handleImportFileChange);
         window.addEventListener("resize", debounce(renderBookmarkPattern, 120));
+        document.addEventListener("visibilitychange", handleVisibilityChange);
 
         window.addEventListener("storage", (event) => {
             if (event.key === window.StartPageConfig.storageKeys.settings) {
@@ -164,14 +176,17 @@
     function applyAppearance() {
         const appearance = state.settings.appearance;
         const scheme = accentSchemes.find((item) => item.id === appearance.colorScheme) || accentSchemes[0];
+        const backgroundEffect = normalizeBackgroundEffect(appearance.backgroundEffect);
         document.documentElement.style.setProperty("--accent", scheme.value);
         document.documentElement.style.setProperty("--accent-strong", darkenColor(scheme.value, 0.18));
+        document.documentElement.style.setProperty("--accent-soft", mixColorWithWhite(scheme.value, 0.58));
         document.documentElement.style.setProperty("--accent-muted", hexToRgba(scheme.value, 0.18));
         document.documentElement.style.setProperty("--accent-glow", hexToRgba(scheme.value, 0.24));
-        document.documentElement.dataset.background = appearance.backgroundEffect;
+        document.documentElement.dataset.background = backgroundEffect;
         document.documentElement.dataset.grid = appearance.showGrid ? "on" : "off";
         document.documentElement.dataset.blur = appearance.enableBlur ? "on" : "off";
         applyResolvedTheme(appearance.theme);
+        updateTypewriterState(backgroundEffect);
     }
 
     function applyResolvedTheme(themeMode) {
@@ -229,6 +244,7 @@
 
     function renderSettingsNav() {
         elements.settingsNav.innerHTML = `
+            <h2 class="settings-nav-heading">Settings</h2>
             <div class="settings-nav-list">
                 ${settingsTabs
                     .map((tab) => {
@@ -270,6 +286,7 @@
 
     function renderAppearanceSettings() {
         const settings = state.settings.appearance;
+        const backgroundEffect = normalizeBackgroundEffect(settings.backgroundEffect);
         return `
             <section class="settings-section">
                 <div>
@@ -295,7 +312,7 @@
                         <select id="setting-background" class="setting-select" data-setting-path="appearance.backgroundEffect">
                             ${renderOptions(
                                 backgroundOptions.map((item) => ({ value: item.id, label: item.label })),
-                                settings.backgroundEffect,
+                                backgroundEffect,
                             )}
                         </select>
                     </article>
@@ -622,6 +639,10 @@
 
     function closeModal(name) {
         const modal = getModalElement(name);
+        if (modal.contains(document.activeElement)) {
+            const focusTarget = name === "settings" ? elements.settingsButton : document.body;
+            focusTarget.focus({ preventScroll: true });
+        }
         modal.classList.remove("is-open");
         modal.setAttribute("aria-hidden", "true");
         if (state.openModal === name) {
@@ -1087,6 +1108,84 @@
         storage.writeBookmarks(state.bookmarks);
     }
 
+    function normalizeBackgroundEffect(effect) {
+        if (effect === "matrix") {
+            return "world-map";
+        }
+        if (backgroundOptions.some((item) => item.id === effect)) {
+            return effect;
+        }
+        return "blob";
+    }
+
+    function handleVisibilityChange() {
+        if (document.hidden) {
+            stopTypewriter();
+            return;
+        }
+        updateTypewriterState(normalizeBackgroundEffect(state.settings.appearance.backgroundEffect));
+    }
+
+    function updateTypewriterState(backgroundEffect) {
+        if (!elements.backgroundTyper) {
+            return;
+        }
+        if (backgroundEffect === "none" || document.hidden) {
+            stopTypewriter();
+            elements.backgroundTyper.textContent = "";
+            elements.backgroundTyper.classList.remove("is-visible");
+            return;
+        }
+        if (!typewriterTimer && !typewriterActive) {
+            typewriterTimer = window.setTimeout(runTypewriterCycle, 900);
+        }
+    }
+
+    function stopTypewriter() {
+        typewriterAbort += 1;
+        window.clearTimeout(typewriterTimer);
+        typewriterTimer = null;
+        typewriterActive = false;
+    }
+
+    async function runTypewriterCycle() {
+        typewriterTimer = null;
+        typewriterActive = true;
+        const token = typewriterAbort;
+        const word = typewriterWords[Math.floor(Math.random() * typewriterWords.length)];
+        const position = typewriterPositions[Math.floor(Math.random() * typewriterPositions.length)];
+        elements.backgroundTyper.style.left = position.left;
+        elements.backgroundTyper.style.top = position.top;
+        elements.backgroundTyper.textContent = "";
+        elements.backgroundTyper.classList.add("is-visible");
+
+        for (let index = 1; index <= word.length; index += 1) {
+            if (token !== typewriterAbort || document.hidden) {
+                if (token === typewriterAbort) typewriterActive = false;
+                return;
+            }
+            elements.backgroundTyper.textContent = word.slice(0, index);
+            await sleep(72);
+        }
+        await sleep(980);
+        for (let index = word.length - 1; index >= 0; index -= 1) {
+            if (token !== typewriterAbort || document.hidden) {
+                if (token === typewriterAbort) typewriterActive = false;
+                return;
+            }
+            elements.backgroundTyper.textContent = word.slice(0, index);
+            await sleep(48);
+        }
+        elements.backgroundTyper.classList.remove("is-visible");
+        typewriterActive = false;
+        if (token !== typewriterAbort || document.hidden) return;
+        typewriterTimer = window.setTimeout(runTypewriterCycle, 1800 + Math.random() * 2200);
+    }
+
+    function sleep(duration) {
+        return new Promise((resolve) => window.setTimeout(resolve, duration));
+    }
+
     function handleGlobalContextMenu(event) {
         if (state.openModal === "settings" || state.openModal === "bookmark-form") {
             return;
@@ -1209,6 +1308,16 @@
     function hexToRgba(hex, alpha) {
         const rgb = hexToRgb(hex);
         return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+    }
+
+    function mixColorWithWhite(hex, whiteAmount) {
+        const rgb = hexToRgb(hex);
+        const factor = Math.max(0, Math.min(1, whiteAmount));
+        return rgbToHex(
+            Math.round(rgb.r * (1 - factor) + 255 * factor),
+            Math.round(rgb.g * (1 - factor) + 255 * factor),
+            Math.round(rgb.b * (1 - factor) + 255 * factor),
+        );
     }
 
     function hexToRgb(hex) {
