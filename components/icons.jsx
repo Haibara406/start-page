@@ -37,10 +37,9 @@ export function EngineIcon({ id, size = 24 }) {
       );
     case "zhihu":
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3 4h8v2H8.6v4H11v2H8.4c-.2 2.6-1.1 5.3-3.2 7.8L3.5 18c1.6-1.9 2.4-3.9 2.6-6H3.5v-2h2.7V6H3V4Z" fill="#0084FF" />
-          <path d="M12.5 4H21v15h-2.2l-.6-1.7-1.5 2H14l2.7-3.5h-4.2V4Zm2.2 2v7.8h4.1V6h-4.1Z" fill="#0084FF" />
-        </svg>
+        <span className="engine-letter engine-letter-zhihu" style={{ width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.42)) }} aria-hidden="true">
+          知
+        </span>
       );
     case "bilibili":
       return (
@@ -78,41 +77,6 @@ export function EngineIcon({ id, size = 24 }) {
         </span>
       );
   }
-}
-
-export function BookmarkSiteIcon({ id, size = 42 }) {
-  if (id === "openai") {
-    return (
-      <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-        <rect width="48" height="48" rx="10" fill="#111" />
-        <path d="M24 10.5c3.2 0 5.9 1.7 7.3 4.3 3 .4 5.2 2.9 5.2 6 0 1.3-.4 2.5-1.1 3.5.7 1 1.1 2.2 1.1 3.5 0 3.1-2.3 5.7-5.3 6-1.4 2.6-4.1 4.2-7.2 4.2-1.3 0-2.6-.3-3.7-.9-1 .6-2.2.9-3.5.9-3.4 0-6.2-2.8-6.2-6.2 0-1.3.4-2.5 1.1-3.5-.7-1-1.1-2.2-1.1-3.5 0-3.4 2.8-6.2 6.2-6.2 1.2 0 2.4.4 3.4 1 1.1-.6 2.4-.9 3.8-.9Z" stroke="#fff" strokeWidth="2" />
-        <path d="M18 20.2 24 16l6 4.2v7.6L24 32l-6-4.2v-7.6Z" stroke="#fff" strokeWidth="2" />
-      </svg>
-    );
-  }
-  if (id === "deepseek") {
-    return <LetterIcon size={size} label="D" bg="#102A43" fg="#67E8F9" />;
-  }
-  if (id === "netease") {
-    return (
-      <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
-        <rect width="48" height="48" rx="10" fill="#D81E06" />
-        <path d="M17 28.2c0-5.5 4.7-9.8 10.5-8.4-1-2.2-3.3-3.6-6-3.6-4.8 0-8.5 3.7-8.5 8.4 0 5.1 4.2 9.2 9.8 9.2 6.8 0 11.2-5.2 11.2-11.5 0-3.9-1.9-7.8-5.3-9.8" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
-        <circle cx="24" cy="27" r="4" fill="#fff" />
-      </svg>
-    );
-  }
-  if (id === "youtube") {
-    return (
-      <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
-        <rect width="48" height="48" rx="10" fill="#FF0000" />
-        <path d="M20 16.5 32 24 20 31.5v-15Z" fill="#fff" />
-      </svg>
-    );
-  }
-  if (id === "bilibili") return <EngineIcon id="bilibili" size={size} />;
-  if (id === "github") return <EngineIcon id="github" size={size} />;
-  return null;
 }
 
 export function LetterIcon({ label, size = 42, bg = "var(--color-accent)", fg = "#fff" }) {

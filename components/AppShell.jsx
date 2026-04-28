@@ -5,7 +5,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import BackgroundEffects from "./BackgroundEffects";
-import { BookmarkSiteIcon, ChevronIcon, EngineIcon, LetterIcon, PencilIcon, SearchIcon, SettingsIcon, TrashIcon } from "./icons";
+import { ChevronIcon, EngineIcon, LetterIcon, PencilIcon, SearchIcon, SettingsIcon, TrashIcon } from "./icons";
 import { backgroundOptions, colorSchemes, defaultBookmarks, defaultSettings, searchEngines, storageKeys } from "../lib/config";
 import { getLanguage, translate } from "../lib/i18n";
 
@@ -242,7 +242,7 @@ export default function AppShell() {
 
   return (
     <main className="app-main">
-      <BackgroundEffects effect={settings.appearance.backgroundEffect} showGrid={settings.appearance.showGrid} taiwanLabel={t("taiwanPopup")} />
+      <BackgroundEffects effect={settings.appearance.backgroundEffect} showGrid={settings.appearance.showGrid} />
       <div className="content-stage">
         <div className="center-stack">
           <Clock format={settings.appearance.clockFormat} t={t} />
@@ -628,12 +628,12 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => reorder(bookmark.id)}
               onDragEnd={() => setDragging(null)}
-              onDoubleClick={() => window.open(bookmark.url, "_blank", "noopener,noreferrer")}
+              onClick={() => openBookmarkUrl(bookmark.url)}
             >
-              <BookmarkVisual bookmark={bookmark} />
+              <BookmarkVisual key={bookmark.url} bookmark={bookmark} />
               <div className="bookmark-actions">
-                <button type="button" aria-label={t("editBookmark")} onClick={() => setFormState(bookmark)}><PencilIcon /></button>
-                <button type="button" aria-label={t("deleteBookmark")} onClick={() => deleteBookmark(bookmark)}><TrashIcon /></button>
+                <button type="button" aria-label={t("editBookmark")} onClick={(event) => { event.stopPropagation(); setFormState(bookmark); }}><PencilIcon /></button>
+                <button type="button" aria-label={t("deleteBookmark")} onClick={(event) => { event.stopPropagation(); deleteBookmark(bookmark); }}><TrashIcon /></button>
               </div>
               {showTitle && <p>{bookmark.title}</p>}
             </article>
@@ -663,14 +663,21 @@ function BookmarkPattern() {
 }
 
 function BookmarkVisual({ bookmark }) {
-  const [failed, setFailed] = useState(false);
+  const [sourceIndex, setSourceIndex] = useState(0);
   const host = getHostname(bookmark.url);
-  const iconId = knownSiteIconId(host);
-  if (iconId) {
-    return <BookmarkSiteIcon id={iconId} size={42} />;
-  }
-  if (!failed) {
-    return <img className="bookmark-favicon" src={faviconUrl(bookmark.url)} alt="" loading="lazy" onError={() => setFailed(true)} />;
+  const sources = useMemo(() => faviconSources(bookmark.url), [bookmark.url]);
+  if (sourceIndex < sources.length) {
+    return (
+      <span className="bookmark-icon-shell">
+        <img
+          className="bookmark-favicon"
+          src={sources[sourceIndex]}
+          alt=""
+          loading="lazy"
+          onError={() => setSourceIndex((index) => index + 1)}
+        />
+      </span>
+    );
   }
   return <LetterIcon label={bookmark.title || host} size={42} />;
 }
@@ -707,12 +714,36 @@ function BookmarkForm({ formState, onClose, onSave, t }) {
   );
 }
 
-function faviconUrl(url) {
+function faviconSources(url) {
   try {
-    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(normalizeUrl(url)).hostname)}&sz=64`;
+    const parsed = new URL(normalizeUrl(url));
+    const origin = parsed.origin;
+    const hostname = parsed.hostname;
+    return [
+      `${origin}/favicon.ico`,
+      `${origin}/favicon.svg`,
+      `${origin}/favicon-32x32.png`,
+      `${origin}/favicon-16x16.png`,
+      `${origin}/icon.svg`,
+      `${origin}/apple-touch-icon.png`,
+      `${origin}/apple-touch-icon-precomposed.png`,
+      `${origin}/apple-touch-icon-180x180.png`,
+      `https://icons.duckduckgo.com/ip3/${hostname}.ico`,
+      `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=128`,
+    ];
   } catch {
-    return "";
+    return [];
   }
+}
+
+function openBookmarkUrl(url) {
+  const target = normalizeUrl(url);
+  const opened = window.open(target, "_blank");
+  if (opened) {
+    opened.opener = null;
+    return;
+  }
+  window.location.href = target;
 }
 
 function getHostname(url) {
@@ -721,17 +752,6 @@ function getHostname(url) {
   } catch {
     return "";
   }
-}
-
-function knownSiteIconId(host) {
-  if (!host) return null;
-  if (host.includes("bilibili.com")) return "bilibili";
-  if (host.includes("chatgpt.com") || host.includes("openai.com")) return "openai";
-  if (host.includes("deepseek.com")) return "deepseek";
-  if (host.includes("music.163.com")) return "netease";
-  if (host.includes("github.com")) return "github";
-  if (host.includes("youtube.com") || host.includes("youtu.be")) return "youtube";
-  return null;
 }
 
 function normalizeUrl(url) {
