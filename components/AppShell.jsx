@@ -651,7 +651,7 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
                 <button type="button" aria-label={t("editBookmark")} onClick={(event) => { event.stopPropagation(); setFormState(bookmark); }}><PencilIcon /></button>
                 <button type="button" aria-label={t("deleteBookmark")} onClick={(event) => { event.stopPropagation(); deleteBookmark(bookmark); }}><TrashIcon /></button>
               </div>
-              {showTitle && <p>{bookmark.title}</p>}
+              {showTitle && <p title={bookmark.title}>{bookmark.title}</p>}
             </article>
           ))}
           <button className="bookmark-add-card" type="button" onClick={() => setFormState({ title: "", url: "" })}>+</button>

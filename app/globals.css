@@ -822,9 +822,11 @@ button {
 .bookmark-add-card {
   position: relative;
   width: 120px;
-  min-height: 120px;
-  display: grid;
-  place-items: center;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 12px 10px;
   border: 3px solid var(--border-default);
@@ -844,9 +846,9 @@ button {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 2px solid color-mix(in srgb, var(--border-default) 14%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-secondary) 92%, var(--color-accent) 8%);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .bookmark-card img,
@@ -867,8 +869,11 @@ button {
 }
 
 .bookmark-card p {
-  max-width: 100%;
-  overflow-wrap: anywhere;
+  width: 100%;
+  min-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 14px;
   font-weight: 700;
   line-height: 1.15;
