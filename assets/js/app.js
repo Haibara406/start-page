@@ -454,16 +454,17 @@
         const host = elements.bookmarksModal.querySelector(".bookmarks-modal");
         const width = host?.clientWidth || window.innerWidth;
         const height = host?.clientHeight || window.innerHeight;
-        const rows = Math.max(12, Math.ceil(height / 42));
-        const cols = Math.max(28, Math.ceil(width / 16));
+        const rows = Math.max(22, Math.ceil(height / 24));
+        const cols = Math.max(96, Math.ceil(width / 10));
 
         const markup = Array.from({ length: rows }, (_, rowIndex) => {
             const text = Array.from(
                 { length: cols },
                 () => symbols[Math.floor(Math.random() * symbols.length)],
             ).join(" ");
-            const duration = 15 + (rowIndex % 5) * 3;
-            return `<div class="pattern-line" style="--pattern-duration:${duration}s">${escapeHtml(text)}</div>`;
+            const duration = 18 + (rowIndex % 6) * 2.6;
+            const offset = rowIndex % 2 === 0 ? "-120px" : "-28px";
+            return `<div class="pattern-line" style="--pattern-duration:${duration}s; --pattern-offset:${offset}">${escapeHtml(text)}</div>`;
         }).join("");
 
         elements.bookmarkPattern.innerHTML = `<div class="pattern-stage">${markup}</div>`;
