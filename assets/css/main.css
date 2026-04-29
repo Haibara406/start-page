@@ -128,6 +128,7 @@ html[data-grid="off"] .background-grid {
     transform: scale(1.015);
     transform-origin: center;
     transition: opacity 220ms ease;
+    will-change: transform;
 }
 
 .blob-shape {
@@ -147,7 +148,7 @@ html[data-grid="off"] .background-grid {
 
 html[data-background="blob"] .blob-scene {
     opacity: 1;
-    animation: scene-breathe 18s ease-in-out infinite 1100ms;
+    animation: scene-breathe 18s ease-in-out infinite 1750ms;
 }
 
 .blob-entry,
@@ -165,21 +166,21 @@ html[data-background="blob"] .blob-entry-left {
 }
 
 html[data-background="blob"] .blob-drift-right {
-    animation: corner-drift-right 24s ease-in-out infinite;
+    animation: corner-drift-right 24s ease-in-out infinite 1750ms;
 }
 
 html[data-background="blob"] .blob-drift-left {
-    animation: corner-drift-left 26s ease-in-out infinite;
+    animation: corner-drift-left 26s ease-in-out infinite 1750ms;
 }
 
 html[data-background="blob"] .blob-soft-right,
 html[data-background="blob"] .blob-soft-left {
-    animation: blob-soft-pulse 19s ease-in-out infinite 1200ms;
+    animation: blob-soft-pulse 19s ease-in-out infinite 1750ms;
 }
 
 html[data-background="blob"] .blob-strong-right,
 html[data-background="blob"] .blob-strong-left {
-    animation: blob-strong-pulse 17s ease-in-out infinite 1000ms;
+    animation: blob-strong-pulse 17s ease-in-out infinite 1750ms;
 }
 
 .effect-layer,
@@ -197,11 +198,12 @@ html[data-background="blob"] .blob-strong-left {
         repeating-linear-gradient(0deg, transparent 0 64px, color-mix(in srgb, var(--accent) 18%, transparent) 65px 67px, transparent 68px 128px);
     filter: blur(0.2px);
     transform: translate3d(0, 0, 0);
+    will-change: transform;
 }
 
 html[data-background="wave"] .effect-wave {
     opacity: 0.84;
-    animation: wave-pan 20s ease-in-out infinite;
+    animation: wave-pan 20s ease-in-out infinite 200ms;
 }
 
 .effect-scatter span {
@@ -213,6 +215,7 @@ html[data-background="wave"] .effect-wave {
     background: var(--accent-soft);
     opacity: 0.82;
     animation: scatter-float 18s ease-in-out infinite;
+    will-change: transform;
 }
 
 .effect-scatter span:nth-child(1) { top: -8%; right: 6%; width: 310px; height: 310px; background: var(--accent); animation-delay: -2s; }
@@ -232,6 +235,7 @@ html[data-background="blob-scatter"] .effect-scatter {
         linear-gradient(32deg, transparent 0 48%, color-mix(in srgb, var(--accent) 88%, transparent) 49% 62%, transparent 63%) 100% 0 / 42% 72% no-repeat,
         linear-gradient(24deg, transparent 0 44%, color-mix(in srgb, var(--accent-soft) 68%, transparent) 45% 56%, transparent 57%) 50% 100% / 64% 38% no-repeat;
     animation: peaks-drift 22s ease-in-out infinite;
+    will-change: transform, background-position;
 }
 
 html[data-background="layered-peaks"] .effect-peaks {
@@ -245,6 +249,7 @@ html[data-background="layered-peaks"] .effect-peaks {
         linear-gradient(0deg, transparent 0 20%, color-mix(in srgb, var(--accent-soft) 55%, transparent) 20% 36%, transparent 36% 100%);
     clip-path: polygon(0 32%, 18% 32%, 18% 46%, 37% 46%, 37% 61%, 58% 61%, 58% 76%, 78% 76%, 78% 88%, 100% 88%, 100% 100%, 0 100%);
     animation: steps-slide 28s linear infinite;
+    will-change: transform, background-position;
 }
 
 html[data-background="layered-steps"] .effect-steps {
@@ -265,6 +270,7 @@ html[data-background="layered-steps"] .effect-steps {
         radial-gradient(ellipse at 72% 66%, #000 0 13%, transparent 13.5%),
         radial-gradient(ellipse at 39% 62%, #000 0 9%, transparent 9.5%);
     mask-composite: add;
+    will-change: opacity;
 }
 
 html[data-background="world-map"] .effect-map,
@@ -289,8 +295,8 @@ html[data-background="matrix"] .effect-map {
     transform: translate(-50%, -50%);
     transition:
         opacity 220ms ease,
-        left 400ms ease,
-        top 400ms ease;
+        left 600ms cubic-bezier(0.4, 0, 0.2, 1),
+        top 600ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .background-typer.is-visible {
@@ -1341,12 +1347,14 @@ html[data-blur="off"] .settings-body {
 }
 
 @keyframes wave-pan {
-    0%,
-    100% {
+    0% {
         transform: translate3d(0, 0, 0) scale(1);
     }
     50% {
         transform: translate3d(-28px, 14px, 0) scale(1.03);
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale(1);
     }
 }
 
