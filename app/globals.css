@@ -775,6 +775,89 @@ button {
   padding: 72px 86px;
 }
 
+.bookmarks-modal {
+  width: min(920px, 95vw);
+  max-height: 85vh;
+  padding: 32px 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.bookmarks-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 0 12px;
+}
+
+.bookmark-search {
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-main);
+  color: var(--text-default);
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.bookmark-search:focus {
+  border-color: var(--color-accent);
+}
+
+.category-filter {
+  padding: 10px 14px;
+  border: 2px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-main);
+  color: var(--text-default);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.category-filter:focus {
+  border-color: var(--color-accent);
+}
+
+.bookmark-category-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-accent-light);
+  color: var(--color-accent-dark);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.bookmark-card:hover .bookmark-category-badge {
+  opacity: 1;
+}
+
+.no-bookmarks {
+  grid-column: 1 / -1;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 600;
+}
+
 .bookmark-pattern {
   position: absolute;
   inset: 0;
@@ -950,6 +1033,29 @@ button {
 
 .form-actions > * {
   flex: 1 1 0;
+}
+
+.category-input-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.category-input-group input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.category-input-group button {
+  flex: 0 0 auto;
+}
+
+.category-select-group {
+  display: flex;
+}
+
+.category-select-group select {
+  flex: 1;
 }
 
 .toast {

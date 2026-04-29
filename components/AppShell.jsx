@@ -50,6 +50,7 @@ function normalizeBookmarks(items) {
           iconUrl: normalizeIconUrl(item.iconUrl || item.icon || item.icon_uri, url) || preferredIconUrl(url),
           id: item.id || `bm-${Date.now()}-${index}`,
           position: Number.isFinite(item.position) ? item.position : index,
+          category: item.category || "",
         };
       } catch {
         return null;
@@ -225,7 +226,9 @@ export default function AppShell() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const imported = parseImportedBookmarks(file.name, String(reader.result || ""));
+      const result = parseImportedBookmarks(file.name, String(reader.result || ""));
+      const imported = result.bookmarks;
+      const newCategories = result.categories;
       if (!imported.length) {
         showToast(t("noValidBookmarks"), "error");
         return;
@@ -249,6 +252,20 @@ export default function AppShell() {
           })),
         ]);
       });
+      if (newCategories.length > 0) {
+        setSettings((current) => {
+          const existingCategories = current.bookmarks.categories || [];
+          const uniqueCategories = newCategories.filter((cat) => !existingCategories.includes(cat));
+          if (uniqueCategories.length === 0) return current;
+          return {
+            ...current,
+            bookmarks: {
+              ...current.bookmarks,
+              categories: [...existingCategories, ...uniqueCategories],
+            },
+          };
+        });
+      }
     };
     reader.onerror = () => showToast(t("failedReadFile"), "error");
     reader.readAsText(file);
@@ -305,6 +322,8 @@ export default function AppShell() {
         formState={formState}
         onClose={() => setFormState(null)}
         t={t}
+        bookmarks={bookmarks}
+        settings={settings}
         onSave={(bookmark) => {
           const url = normalizeUrl(bookmark.url);
           const nextBookmark = { ...bookmark, url, iconUrl: normalizeIconUrl(bookmark.iconUrl, url) || preferredIconUrl(url) };
@@ -605,6 +624,8 @@ function DataSettings({ exportBookmarks, importBookmarks, resetSettings, resetLo
 
 function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBookmarks, setFormState, t }) {
   const [dragging, setDragging] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const backdropRef = useRef(null);
   const panelRef = useRef(null);
   useLayoutEffect(() => {
@@ -617,6 +638,13 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
   }, [open]);
   if (!open) return null;
   const sorted = [...bookmarks].sort((a, b) => a.position - b.position);
+  const filtered = sorted.filter((bookmark) => {
+    const matchesSearch = searchQuery === "" ||
+      bookmark.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bookmark.url.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All Categories" || bookmark.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
   function reorder(targetId) {
     if (!dragging || dragging === targetId) return;
     const ids = sorted.map((item) => item.id);
@@ -630,31 +658,59 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
       setBookmarks((current) => normalizeBookmarks(current.filter((item) => item.id !== bookmark.id)));
     }
   }
+  const categories = ["All Categories", ...Array.from(new Set(bookmarks.map((b) => b.category).filter(Boolean)))];
   return (
     <div ref={backdropRef} className={`modal-layer is-open ${enableBlur ? "has-blur" : ""}`} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <div ref={panelRef} className="bookmarks-modal modal-panel bookmark-modal" role="dialog" aria-modal="true">
         <BookmarkPattern />
+        <div className="bookmarks-header">
+          <input
+            type="text"
+            className="bookmark-search"
+            placeholder={t("searchBookmarks")}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label={t("searchBookmarks")}
+          />
+          <select
+            className="category-filter"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            aria-label={t("category")}
+          >
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat === "All Categories" ? t("allCategories") : cat || t("noCategory")}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="bookmarks-grid">
-          {sorted.map((bookmark) => (
-            <article
-              key={bookmark.id}
-              className={`bookmark-card ${dragging === bookmark.id ? "is-dragging" : ""}`}
-              draggable
-              onDragStart={() => setDragging(bookmark.id)}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={() => reorder(bookmark.id)}
-              onDragEnd={() => setDragging(null)}
-              onClick={() => openBookmarkUrl(bookmark.url)}
-            >
-              <BookmarkVisual key={bookmark.url} bookmark={bookmark} />
-              <div className="bookmark-actions">
-                <button type="button" aria-label={t("editBookmark")} onClick={(event) => { event.stopPropagation(); setFormState(bookmark); }}><PencilIcon /></button>
-                <button type="button" aria-label={t("deleteBookmark")} onClick={(event) => { event.stopPropagation(); deleteBookmark(bookmark); }}><TrashIcon /></button>
-              </div>
-              {showTitle && <p title={bookmark.title}>{bookmark.title}</p>}
-            </article>
-          ))}
-          <button className="bookmark-add-card" type="button" onClick={() => setFormState({ title: "", url: "" })}>+</button>
+          {filtered.length === 0 ? (
+            <div className="no-bookmarks">{t("noBookmarksFound")}</div>
+          ) : (
+            filtered.map((bookmark) => (
+              <article
+                key={bookmark.id}
+                className={`bookmark-card ${dragging === bookmark.id ? "is-dragging" : ""}`}
+                draggable
+                onDragStart={() => setDragging(bookmark.id)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => reorder(bookmark.id)}
+                onDragEnd={() => setDragging(null)}
+                onClick={() => openBookmarkUrl(bookmark.url)}
+              >
+                <BookmarkVisual key={bookmark.url} bookmark={bookmark} />
+                <div className="bookmark-actions">
+                  <button type="button" aria-label={t("editBookmark")} onClick={(event) => { event.stopPropagation(); setFormState(bookmark); }}><PencilIcon /></button>
+                  <button type="button" aria-label={t("deleteBookmark")} onClick={(event) => { event.stopPropagation(); deleteBookmark(bookmark); }}><TrashIcon /></button>
+                </div>
+                {showTitle && <p title={bookmark.title}>{bookmark.title}</p>}
+                {bookmark.category && <span className="bookmark-category-badge">{bookmark.category}</span>}
+              </article>
+            ))
+          )}
+          <button className="bookmark-add-card" type="button" onClick={() => setFormState({ title: "", url: "", category: "" })}>+</button>
         </div>
       </div>
     </div>
@@ -698,8 +754,10 @@ function BookmarkVisual({ bookmark }) {
   return <LetterIcon label={bookmark.title || host} size={42} />;
 }
 
-function BookmarkForm({ formState, onClose, onSave, t }) {
-  const [draft, setDraft] = useState(() => formState || { title: "", url: "", iconUrl: "" });
+function BookmarkForm({ formState, onClose, onSave, t, bookmarks, settings }) {
+  const [draft, setDraft] = useState(() => formState || { title: "", url: "", iconUrl: "", category: "" });
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const panelRef = useRef(null);
   useLayoutEffect(() => {
     if (!formState || !panelRef.current) return undefined;
@@ -709,6 +767,18 @@ function BookmarkForm({ formState, onClose, onSave, t }) {
     return () => context.revert();
   }, [formState]);
   if (!formState) return null;
+
+  const existingCategories = Array.from(new Set(bookmarks.map((b) => b.category).filter(Boolean)));
+
+  function handleAddCategory() {
+    const trimmed = newCategoryName.trim();
+    if (trimmed && !existingCategories.includes(trimmed)) {
+      setDraft({ ...draft, category: trimmed });
+      setNewCategoryName("");
+      setIsAddingCategory(false);
+    }
+  }
+
   return (
     <div className="modal-layer is-open">
       <div ref={panelRef} className="form-modal modal-panel" role="dialog" aria-modal="true">
@@ -719,7 +789,7 @@ function BookmarkForm({ formState, onClose, onSave, t }) {
         <form onSubmit={(event) => {
           event.preventDefault();
           const url = normalizeUrl(draft.url);
-          onSave({ ...draft, url, title: draft.title.trim() || new URL(url).hostname, iconUrl: normalizeIconUrl(draft.iconUrl, url) || preferredIconUrl(url) });
+          onSave({ ...draft, url, title: draft.title.trim() || new URL(url).hostname, iconUrl: normalizeIconUrl(draft.iconUrl, url) || preferredIconUrl(url), category: draft.category || "" });
         }}>
           <label>{t("title")}<input name="title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder={t("titlePlaceholder")} /></label>
           <label>{t("url")}<input name="url" value={draft.url} onChange={(event) => setDraft({ ...draft, url: event.target.value })} onBlur={() => {
@@ -728,6 +798,46 @@ function BookmarkForm({ formState, onClose, onSave, t }) {
               setDraft((current) => ({ ...current, url, iconUrl: normalizeIconUrl(current.iconUrl, url) || preferredIconUrl(url) }));
             } catch {}
           }} placeholder={t("urlPlaceholder")} required /></label>
+          <label>{t("category")}
+            {isAddingCategory ? (
+              <div className="category-input-group">
+                <input
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder={t("categoryPlaceholder")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCategory();
+                    } else if (e.key === "Escape") {
+                      setIsAddingCategory(false);
+                      setNewCategoryName("");
+                    }
+                  }}
+                  autoFocus
+                />
+                <button type="button" className="secondary-action" onClick={handleAddCategory}>{t("addCategory")}</button>
+                <button type="button" className="secondary-action" onClick={() => { setIsAddingCategory(false); setNewCategoryName(""); }}>{t("cancel")}</button>
+              </div>
+            ) : (
+              <div className="category-select-group">
+                <select name="category" value={draft.category || ""} onChange={(event) => {
+                  if (event.target.value === "__new__") {
+                    setIsAddingCategory(true);
+                  } else {
+                    setDraft({ ...draft, category: event.target.value });
+                  }
+                }}>
+                  <option value="">{t("noCategory")}</option>
+                  {existingCategories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                  <option value="__new__">+ {t("newCategory")}</option>
+                </select>
+              </div>
+            )}
+          </label>
           <div className="form-actions"><button className="primary-action" type="submit">{t("save")}</button><button className="secondary-action" type="button" onClick={onClose}>{t("cancel")}</button></div>
         </form>
       </div>
@@ -842,17 +952,62 @@ function parseImportedBookmarks(filename, text) {
     if (filename.toLowerCase().endsWith(".json")) {
       const parsed = JSON.parse(text);
       const list = Array.isArray(parsed) ? parsed : parsed.bookmarks;
-      return normalizeImportedList(list || []);
+      return { bookmarks: normalizeImportedList(list || []), categories: [] };
     }
     const parsedDocument = new DOMParser().parseFromString(text, "text/html");
-    const anchors = Array.from(parsedDocument.querySelectorAll("a[href]"));
-    return normalizeImportedList(anchors.map((anchor) => ({
-      title: anchor.textContent?.trim(),
-      url: anchor.getAttribute("href"),
-      iconUrl: anchor.getAttribute("icon") || anchor.getAttribute("icon_uri"),
-    })));
+    const bookmarks = [];
+    const categories = new Set();
+
+    function traverseNode(node, categoryPath = []) {
+      const children = Array.from(node.children);
+      for (const child of children) {
+        if (child.tagName === "DT") {
+          const h3 = child.querySelector("h3");
+          if (h3) {
+            const folderName = h3.textContent?.trim();
+            if (folderName && folderName !== "书签栏" && folderName !== "Bookmarks Bar" && folderName !== "Bookmarks Toolbar") {
+              const newPath = [...categoryPath, folderName];
+              const categoryName = newPath.join(" > ");
+              categories.add(categoryName);
+              const dl = child.querySelector("dl");
+              if (dl) {
+                traverseNode(dl, newPath);
+              }
+            } else {
+              const dl = child.querySelector("dl");
+              if (dl) {
+                traverseNode(dl, categoryPath);
+              }
+            }
+          } else {
+            const anchor = child.querySelector("a[href]");
+            if (anchor) {
+              const category = categoryPath.length > 0 ? categoryPath.join(" > ") : "";
+              bookmarks.push({
+                title: anchor.textContent?.trim(),
+                url: anchor.getAttribute("href"),
+                iconUrl: anchor.getAttribute("icon") || anchor.getAttribute("icon_uri"),
+                category,
+              });
+            }
+          }
+        } else if (child.tagName === "DL") {
+          traverseNode(child, categoryPath);
+        }
+      }
+    }
+
+    const rootDL = parsedDocument.querySelector("dl");
+    if (rootDL) {
+      traverseNode(rootDL);
+    }
+
+    return {
+      bookmarks: normalizeImportedList(bookmarks),
+      categories: Array.from(categories),
+    };
   } catch {
-    return [];
+    return { bookmarks: [], categories: [] };
   }
 }
 
@@ -862,7 +1017,12 @@ function normalizeImportedList(list) {
       try {
         const url = normalizeUrl(String(bookmark.url || bookmark.href || ""));
         const iconUrl = String(bookmark.iconUrl || bookmark.icon || bookmark.icon_uri || "").trim();
-        return { title: String(bookmark.title || bookmark.name || new URL(url).hostname).trim(), url, iconUrl: normalizeIconUrl(iconUrl, url) || preferredIconUrl(url) };
+        return {
+          title: String(bookmark.title || bookmark.name || new URL(url).hostname).trim(),
+          url,
+          iconUrl: normalizeIconUrl(iconUrl, url) || preferredIconUrl(url),
+          category: bookmark.category || "",
+        };
       } catch {
         return null;
       }
