@@ -133,3 +133,13 @@ export function TrashIcon() {
     </svg>
   );
 }
+
+export function PinIcon({ filled = false }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 4.5 19.5 10" />
+      <path d="m5 19 5.5-5.5" />
+      <path d="M9 5.5 18.5 15l-3.5 1-3 3-7-7 3-3 1-3.5Z" />
+    </svg>
+  );
+}

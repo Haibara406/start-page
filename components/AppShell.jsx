@@ -5,7 +5,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import BackgroundEffects from "./BackgroundEffects";
-import { ChevronIcon, EngineIcon, LetterIcon, PencilIcon, SearchIcon, SettingsIcon, TrashIcon } from "./icons";
+import { ChevronIcon, EngineIcon, LetterIcon, PencilIcon, PinIcon, SearchIcon, SettingsIcon, TrashIcon } from "./icons";
 import { backgroundOptions, colorSchemes, defaultBookmarks, defaultSettings, searchEngines, storageKeys } from "../lib/config";
 import { getLanguage, translate } from "../lib/i18n";
 
@@ -51,14 +51,22 @@ function normalizeBookmarks(items) {
           id: item.id || `bm-${Date.now()}-${index}`,
           position: Number.isFinite(item.position) ? item.position : index,
           category: item.category || "",
+          pinned: Boolean(item.pinned),
         };
       } catch {
         return null;
       }
     })
     .filter(Boolean)
-    .sort((a, b) => a.position - b.position)
+    .sort(compareBookmarkPosition)
     .map((item, index) => ({ ...item, position: index }));
+}
+
+function compareBookmarkPosition(a, b) {
+  if (Boolean(a.pinned) !== Boolean(b.pinned)) {
+    return a.pinned ? -1 : 1;
+  }
+  return a.position - b.position;
 }
 
 export default function AppShell() {
@@ -205,7 +213,7 @@ export default function AppShell() {
   }
 
   function exportBookmarks(format) {
-    const sorted = [...bookmarks].sort((a, b) => a.position - b.position);
+    const sorted = [...bookmarks].sort(compareBookmarkPosition);
     if (format === "html") {
       const rows = sorted
         .map((bookmark) => `    <DT><A HREF="${escapeHtml(bookmark.url)}"${bookmark.iconUrl ? ` ICON="${escapeHtml(bookmark.iconUrl)}"` : ""}>${escapeHtml(bookmark.title)}</A>`)
@@ -637,7 +645,7 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
     return () => context.revert();
   }, [open]);
   if (!open) return null;
-  const sorted = [...bookmarks].sort((a, b) => a.position - b.position);
+  const sorted = [...bookmarks].sort(compareBookmarkPosition);
   const filtered = sorted.filter((bookmark) => {
     const matchesSearch = searchQuery === "" ||
       bookmark.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -657,6 +665,9 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
     if (window.confirm(t("confirmDeleteBookmark", { title: bookmark.title }))) {
       setBookmarks((current) => normalizeBookmarks(current.filter((item) => item.id !== bookmark.id)));
     }
+  }
+  function togglePinned(bookmark) {
+    setBookmarks((current) => normalizeBookmarks(current.map((item) => (item.id === bookmark.id ? { ...item, pinned: !item.pinned } : item))));
   }
   const categories = ["All Categories", ...Array.from(new Set(bookmarks.map((b) => b.category).filter(Boolean)))];
   return (
@@ -692,7 +703,7 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
             filtered.map((bookmark) => (
               <article
                 key={bookmark.id}
-                className={`bookmark-card ${dragging === bookmark.id ? "is-dragging" : ""}`}
+                className={`bookmark-card ${bookmark.pinned ? "is-pinned" : ""} ${dragging === bookmark.id ? "is-dragging" : ""}`}
                 draggable
                 onDragStart={() => setDragging(bookmark.id)}
                 onDragOver={(event) => event.preventDefault()}
@@ -702,6 +713,19 @@ function BookmarksModal({ open, onClose, bookmarks, enableBlur, showTitle, setBo
               >
                 <BookmarkVisual key={bookmark.url} bookmark={bookmark} />
                 <div className="bookmark-actions">
+                  <button
+                    type="button"
+                    className={bookmark.pinned ? "is-active" : ""}
+                    aria-label={bookmark.pinned ? t("unpinBookmark") : t("pinBookmark")}
+                    title={bookmark.pinned ? t("unpinBookmark") : t("pinBookmark")}
+                    aria-pressed={bookmark.pinned}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      togglePinned(bookmark);
+                    }}
+                  >
+                    <PinIcon filled={bookmark.pinned} />
+                  </button>
                   <button type="button" aria-label={t("editBookmark")} onClick={(event) => { event.stopPropagation(); setFormState(bookmark); }}><PencilIcon /></button>
                   <button type="button" aria-label={t("deleteBookmark")} onClick={(event) => { event.stopPropagation(); deleteBookmark(bookmark); }}><TrashIcon /></button>
                 </div>
@@ -1022,6 +1046,7 @@ function normalizeImportedList(list) {
           url,
           iconUrl: normalizeIconUrl(iconUrl, url) || preferredIconUrl(url),
           category: bookmark.category || "",
+          pinned: Boolean(bookmark.pinned),
         };
       } catch {
         return null;
